@@ -18,6 +18,7 @@ export function PolicyCenter() {
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState(null);
 
   // Simulator
   const [simAmount,  setSimAmount]  = useState(12500);
@@ -31,14 +32,30 @@ export function PolicyCenter() {
   const handleSave = async e => {
     e.preventDefault();
     setSaving(true);
-    const res = await authFetch('/api/policies', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(policy),
-    });
-    const d = await res.json();
-    if (!d.error) { setPolicy(d); setSaved(true); setTimeout(() => setSaved(false), 3000); }
-    setSaving(false);
+    setError(null);
+    try {
+      const res = await authFetch('/api/policies', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(policy),
+      });
+      if (!res.ok) {
+        let msg = 'Failed to save settings.';
+        try { const errObj = await res.json(); if (errObj.error) msg = errObj.error; } catch (e) {}
+        throw new Error(msg);
+      }
+      const d = await res.json();
+      if (d.error) throw new Error(d.error);
+      setPolicy(d); 
+      setSaved(true); 
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Failed to save settings.');
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggleAction = id => {
@@ -126,6 +143,10 @@ export function PolicyCenter() {
             {saved ? (
               <span className="flex items-center gap-1.5 text-xs text-white font-medium">
                 <CheckCircle2 className="h-4 w-4" /> Saved
+              </span>
+            ) : error ? (
+              <span className="flex items-center gap-1.5 text-xs text-red-500 font-medium">
+                <ShieldAlert className="h-4 w-4" /> {error}
               </span>
             ) : <div />}
             <button type="submit" disabled={saving}

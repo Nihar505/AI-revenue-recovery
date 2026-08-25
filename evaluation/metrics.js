@@ -18,6 +18,7 @@ export async function runEvaluation(sampleSize = 100) {
     FROM payments p
     JOIN customers c ON c.id = p.customer_id
     WHERE p.status IN ('failed', 'abandoned')
+    ORDER BY RANDOM()
     LIMIT ?
   `).all(sampleSize);
 

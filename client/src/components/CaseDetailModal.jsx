@@ -6,6 +6,7 @@ export function CaseDetailModal({ caseId, onClose, onRunSingleCase }) {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [error, setError] = useState(null);
 
   const load = async () => {
     if (!caseId) return;
@@ -22,10 +23,20 @@ export function CaseDetailModal({ caseId, onClose, onRunSingleCase }) {
 
   const handleRun = async () => {
     setRunning(true);
+    setError(null);
     try {
-      await authFetch(`/api/run-recovery/case/${caseId}`, { method: 'POST' });
+      const res = await authFetch(`/api/run-recovery/case/${caseId}`, { method: 'POST' });
+      if (!res.ok) {
+        let msg = 'Failed to run recovery pipeline.';
+        if (res.status === 409) msg = 'This case has already been processed or is no longer available for this action.';
+        try { const errObj = await res.json(); if (errObj.error) msg = errObj.error; } catch (e) {}
+        throw new Error(msg);
+      }
       await load();
       onRunSingleCase?.();
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'An error occurred while running the case.');
     } finally {
       setRunning(false);
     }
@@ -82,6 +93,12 @@ export function CaseDetailModal({ caseId, onClose, onRunSingleCase }) {
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto">
+            {error && (
+              <div className="mx-5 mt-4 rounded-lg border border-red-900/50 bg-red-950/20 px-4 py-3 text-sm text-red-400 flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 shrink-0" />
+                {error}
+              </div>
+            )}
             {/* Stats bar */}
             <div className="grid grid-cols-3 divide-x divide-neutral-800 border-b border-neutral-800">
               <div className="px-5 py-4">

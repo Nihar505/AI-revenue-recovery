@@ -11,33 +11,49 @@ export function Opportunities({ onOpenCaseModal }) {
   const [page, setPage] = useState(0);
   const limit = 20;
 
-  const fetchCases = async () => {
-    setLoading(true);
-    try {
-      const query = new URLSearchParams({
-        limit: limit.toString(),
-        offset: (page * limit).toString(),
-        ...(statusFilter ? { status: statusFilter } : {}),
-        ...(searchTerm.trim() ? { q: searchTerm.trim() } : {})
-      });
-      const res = await authFetch(`/api/cases?${query}`);
-      const json = await res.json();
-      setCases(json.cases || []);
-      setTotal(json.total || 0);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const controller = new AbortController();
+    
+    const fetchCases = async () => {
+      setLoading(true);
+      try {
+        const query = new URLSearchParams({
+          limit: limit.toString(),
+          offset: (page * limit).toString(),
+          ...(statusFilter ? { status: statusFilter } : {}),
+          ...(searchTerm.trim() ? { q: searchTerm.trim() } : {})
+        });
+        const res = await authFetch(`/api/cases?${query}`, { signal: controller.signal });
+        if (!res.ok) throw new Error('Failed to fetch cases');
+        const json = await res.json();
+        setCases(json.cases || []);
+        setTotal(json.total || 0);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error(err);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    const handler = setTimeout(() => {
+      fetchCases();
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+      controller.abort();
+    };
+  }, [page, statusFilter, searchTerm]);
 
   // Reset to first page when search or status filter changes
   const handleSearchChange = (value) => {
     setSearchTerm(value);
     setPage(0);
   };
-
-  useEffect(() => { fetchCases(); }, [page, statusFilter, searchTerm]);
 
 
   const statusPill = {
