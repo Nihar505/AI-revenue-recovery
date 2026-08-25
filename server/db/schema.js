@@ -105,10 +105,27 @@ export function initDb() {
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
-      password_hash TEXT NOT NULL,
+      password_hash TEXT,
+      google_id TEXT UNIQUE,
+      avatar_url TEXT,
+      auth_provider TEXT DEFAULT 'local',
       created_at TEXT DEFAULT (datetime('now'))
     );
   `);
+
+  // Migration: Ensure new OAuth columns exist for existing databases
+  const userColumns = db.prepare("PRAGMA table_info(users)").all().map(c => c.name);
+  if (!userColumns.includes('google_id')) {
+    db.exec("ALTER TABLE users ADD COLUMN google_id TEXT");
+  }
+  if (!userColumns.includes('avatar_url')) {
+    db.exec("ALTER TABLE users ADD COLUMN avatar_url TEXT");
+  }
+  if (!userColumns.includes('auth_provider')) {
+    db.exec("ALTER TABLE users ADD COLUMN auth_provider TEXT DEFAULT 'local'");
+  }
+  // Ensure google_id uniqueness via index (ALTER TABLE ADD COLUMN cannot include constraints)
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id) WHERE google_id IS NOT NULL");
 
   // Seed default user if none exists
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
@@ -116,8 +133,8 @@ export function initDb() {
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync('password123', salt);
     db.prepare(`
-      INSERT INTO users (id, name, email, password_hash)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO users (id, name, email, password_hash, auth_provider)
+      VALUES (?, ?, ?, ?, 'local')
     `).run('usr_default_admin', 'RecoverAI Merchant', 'admin@recover.ai', hash);
     console.log('[DB] Seeded default user admin@recover.ai / password123');
   }

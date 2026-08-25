@@ -69,6 +69,29 @@ export function AuthProvider({ children }) {
     return data.user;
   }, []);
 
+  const getGoogleAuthUrl = useCallback(async () => {
+    const res = await fetch('/api/auth/google/url');
+    const data = await res.json();
+    if (!res.ok || !data.url) {
+      throw new Error(data.error || 'Google OAuth is not available.');
+    }
+    return data.url;
+  }, []);
+
+  const loginWithGoogle = useCallback(async (code, state) => {
+    const res = await fetch('/api/auth/google/callback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, state }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Google login failed.');
+    localStorage.setItem(TOKEN_KEY, data.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
+  }, []);
+
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
@@ -76,7 +99,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, loginWithGoogle, getGoogleAuthUrl, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -4,7 +4,7 @@ import { Zap, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export function Login() {
-  const { login, signup } = useAuth();
+  const { login, signup, getGoogleAuthUrl } = useAuth();
   const navigate = useNavigate();
 
   const [mode, setMode] = useState('login'); // 'login' | 'signup'
@@ -13,7 +13,20 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    setGoogleLoading(true);
+    try {
+      const url = await getGoogleAuthUrl();
+      window.location.href = url;
+    } catch (err) {
+      setError(err.message || 'Google sign-in is currently unavailable.');
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -91,7 +104,7 @@ export function Login() {
           </div>
 
           {/* Mode toggle */}
-          <div className="mb-8 flex rounded-xl border border-neutral-800 bg-neutral-900 p-1">
+          <div className="mb-6 flex rounded-xl border border-neutral-800 bg-neutral-900 p-1">
             {['login', 'signup'].map(m => (
               <button
                 key={m}
@@ -104,6 +117,48 @@ export function Login() {
                 {m === 'login' ? 'Sign in' : 'Create account'}
               </button>
             ))}
+          </div>
+
+          {/* Google OAuth Button */}
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading || loading}
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-700 bg-neutral-900/80 px-4 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 hover:border-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {googleLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
+            ) : (
+              <svg className="h-4 w-4" viewBox="0 0 24 24">
+                <path
+                  fill="#EA4335"
+                  d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.8 0 12s.7 3.3 1.9 5.7l3.7-2.9z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"
+                />
+              </svg>
+            )}
+            <span>{googleLoading ? 'Redirecting to Google...' : 'Continue with Google'}</span>
+          </button>
+
+          {/* Divider */}
+          <div className="relative my-6 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-neutral-800" />
+            </div>
+            <div className="relative bg-black px-3 text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+              or continue with email
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

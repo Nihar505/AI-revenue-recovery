@@ -103,7 +103,19 @@ export function Sidebar({ isAgentRunning, onRunAgent, isOpen, onClose }) {
       {user && (
         <div className="mx-3 mb-2 rounded-2xl border border-neutral-800 bg-neutral-900 p-3">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-700 bg-neutral-800">
+            {user.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.name}
+                referrerPolicy="no-referrer"
+                className="h-8 w-8 shrink-0 rounded-full border border-neutral-700 object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+            ) : null}
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-neutral-700 bg-neutral-800 ${user.avatar_url ? 'hidden' : ''}`}>
               <User className="h-3.5 w-3.5 text-neutral-400" />
             </div>
             <div className="flex-1 min-w-0">

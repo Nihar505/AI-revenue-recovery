@@ -10,6 +10,7 @@ import { Analytics } from './pages/Analytics';
 import { Evaluation } from './pages/Evaluation';
 import { CaseDetailModal } from './components/CaseDetailModal';
 import { Login } from './pages/Login';
+import { GoogleCallback } from './pages/GoogleCallback';
 import { AuthProvider, authFetch } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
@@ -248,6 +249,7 @@ function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/auth/callback" element={<GoogleCallback />} />
           <Route
             path="/*"
             element={
