@@ -37,7 +37,11 @@ app.use('/api/run-recovery', requireAuth, runRecoveryRouter);
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('[Server Error]', err.message);
-  res.status(500).json({ error: 'Internal server error', message: err.message });
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({
+    error: status === 400 ? 'Bad Request' : 'Internal server error',
+    message: err.message
+  });
 });
 
 initDb();

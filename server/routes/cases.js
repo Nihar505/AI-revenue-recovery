@@ -7,9 +7,34 @@ export const casesRouter = Router();
 casesRouter.get('/', (req, res) => {
   try {
     const db = getDb();
-    const { status, q = '', limit = 50, offset = 0 } = req.query;
-    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
-    const safeOffset = Math.max(parseInt(offset, 10) || 0, 0);
+    const { status, q = '', limit, offset } = req.query;
+    let safeLimit = 50;
+    let safeOffset = 0;
+
+    if (limit !== undefined) {
+      const trimmed = String(limit).trim();
+      if (!/^\d+$/.test(trimmed)) {
+        return res.status(400).json({ error: 'Invalid limit parameter. Must be a positive integer.' });
+      }
+      const parsed = parseInt(trimmed, 10);
+      if (parsed < 1 || parsed > 100) {
+        return res.status(400).json({ error: 'Limit must be between 1 and 100.' });
+      }
+      safeLimit = parsed;
+    }
+
+    if (offset !== undefined) {
+      const trimmed = String(offset).trim();
+      if (!/^\d+$/.test(trimmed)) {
+        return res.status(400).json({ error: 'Invalid offset parameter. Must be a non-negative integer.' });
+      }
+      const parsed = parseInt(trimmed, 10);
+      if (parsed < 0) {
+        return res.status(400).json({ error: 'Offset must be non-negative.' });
+      }
+      safeOffset = parsed;
+    }
+
     const searchTerm = String(q).trim().slice(0, 100);
 
     let query = `

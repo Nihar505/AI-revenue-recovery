@@ -100,8 +100,22 @@ analyticsRouter.get('/overview', (req, res) => {
 // GET /api/analytics/evaluation — Run & return live evaluation benchmark
 analyticsRouter.get('/evaluation', async (req, res) => {
   try {
-    const { sampleSize = 100 } = req.query;
-    const report = await runEvaluation(parseInt(sampleSize));
+    const { sampleSize } = req.query;
+    let parsedSampleSize = 100;
+
+    if (sampleSize !== undefined) {
+      const trimmed = String(sampleSize).trim();
+      if (!/^\d+$/.test(trimmed)) {
+        return res.status(400).json({ error: 'Invalid sampleSize parameter. Must be a positive integer.' });
+      }
+      const parsed = parseInt(trimmed, 10);
+      if (parsed < 1 || parsed > 1000) {
+        return res.status(400).json({ error: 'sampleSize must be between 1 and 1000.' });
+      }
+      parsedSampleSize = parsed;
+    }
+
+    const report = await runEvaluation(parsedSampleSize);
     res.json(report);
   } catch (err) {
     res.status(500).json({ error: err.message });

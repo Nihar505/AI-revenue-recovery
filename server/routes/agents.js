@@ -7,7 +7,20 @@ export const agentsRouter = Router();
 agentsRouter.get('/actions', (req, res) => {
   try {
     const db = getDb();
-    const { limit = 100 } = req.query;
+    const { limit } = req.query;
+    let safeLimit = 100;
+
+    if (limit !== undefined) {
+      const trimmed = String(limit).trim();
+      if (!/^\d+$/.test(trimmed)) {
+        return res.status(400).json({ error: 'Invalid limit parameter. Must be a positive integer.' });
+      }
+      const parsed = parseInt(trimmed, 10);
+      if (parsed < 1 || parsed > 500) {
+        return res.status(400).json({ error: 'Limit must be between 1 and 500.' });
+      }
+      safeLimit = parsed;
+    }
 
     const actions = db.prepare(`
       SELECT aa.*, rc.payment_id, p.amount, p.currency, c.name as customer_name
@@ -17,7 +30,7 @@ agentsRouter.get('/actions', (req, res) => {
       JOIN customers c ON c.id = p.customer_id
       ORDER BY aa.created_at DESC
       LIMIT ?
-    `).all(parseInt(limit));
+    `).all(safeLimit);
 
     res.json({ actions });
   } catch (err) {

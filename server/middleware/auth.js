@@ -8,10 +8,18 @@ const JWT_SECRET = process.env.JWT_SECRET || 'recoverai_secret_2026';
  */
 export function requireAuth(req, res, next) {
   const header = req.headers['authorization'];
-  if (!header || !header.startsWith('Bearer ')) {
+  let token = null;
+
+  if (header && header.startsWith('Bearer ')) {
+    token = header.slice(7);
+  } else if (req.query && typeof req.query.ticket === 'string' && req.query.ticket.trim()) {
+    token = req.query.ticket.trim();
+  }
+
+  if (!token) {
     return res.status(401).json({ error: 'Authentication required. Please log in.' });
   }
-  const token = header.slice(7);
+
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     req.user = payload;

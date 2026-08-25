@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
 import { getDb } from '../db/schema.js';
+import { JWT_SECRET } from '../middleware/auth.js';
 import { runRevenueDetective } from '../agents/detective.js';
 import { runRootCauseAnalyst } from '../agents/analyst.js';
 import { runRecoveryStrategist } from '../agents/strategist.js';
@@ -23,6 +25,19 @@ export function broadcastAgentEvent(event) {
     }
   });
 }
+
+// POST /api/run-recovery/stream-ticket — Issue short-lived ticket for browser EventSource
+runRecoveryRouter.post('/stream-ticket', (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  const ticket = jwt.sign(
+    { id: req.user.id, email: req.user.email, purpose: 'sse_stream' },
+    JWT_SECRET,
+    { expiresIn: '60s' }
+  );
+  res.json({ ticket });
+});
 
 // SSE live stream endpoint
 runRecoveryRouter.get('/stream', (req, res) => {
@@ -162,8 +177,15 @@ export async function processPaymentEvent(payment, customer, existingCaseId = nu
 runRecoveryRouter.post('/batch', async (req, res) => {
   try {
     const db = getDb();
-    const { limit = 15 } = req.body;
-    const safeLimit = Math.min(Math.max(parseInt(limit, 10) || 15, 1), 50);
+    const { limit } = req.body || {};
+    let safeLimit = 15;
+
+    if (limit !== undefined) {
+      if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > 50) {
+        return res.status(400).json({ error: 'Invalid limit parameter. Must be an integer between 1 and 50.' });
+      }
+      safeLimit = limit;
+    }
 
     // Only process unresolved cases. Marking them first prevents overlapping runs
     // from executing recovery actions twice for the same payment.

@@ -17,7 +17,8 @@ export function Opportunities({ onOpenCaseModal }) {
       const query = new URLSearchParams({
         limit: limit.toString(),
         offset: (page * limit).toString(),
-        ...(statusFilter ? { status: statusFilter } : {})
+        ...(statusFilter ? { status: statusFilter } : {}),
+        ...(searchTerm.trim() ? { q: searchTerm.trim() } : {})
       });
       const res = await authFetch(`/api/cases?${query}`);
       const json = await res.json();
@@ -30,18 +31,14 @@ export function Opportunities({ onOpenCaseModal }) {
     }
   };
 
-  useEffect(() => { fetchCases(); }, [page, statusFilter]);
+  // Reset to first page when search or status filter changes
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setPage(0);
+  };
 
-  const filtered = cases.filter(c => {
-    if (!searchTerm) return true;
-    const t = searchTerm.toLowerCase();
-    return (
-      c.id?.toLowerCase().includes(t) ||
-      c.customer_name?.toLowerCase().includes(t) ||
-      c.payment_id?.toLowerCase().includes(t) ||
-      c.failure_reason?.toLowerCase().includes(t)
-    );
-  });
+  useEffect(() => { fetchCases(); }, [page, statusFilter, searchTerm]);
+
 
   const statusPill = {
     recovered: 'bg-white text-black',
@@ -74,7 +71,7 @@ export function Opportunities({ onOpenCaseModal }) {
               type="text"
               placeholder="Search cases…"
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={e => handleSearchChange(e.target.value)}
               className="w-56 rounded-lg border border-neutral-700 bg-neutral-900 py-2 pl-9 pr-3 text-xs text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none transition"
             />
           </div>
@@ -111,11 +108,11 @@ export function Opportunities({ onOpenCaseModal }) {
                   Loading…
                 </td>
               </tr>
-            ) : filtered.length === 0 ? (
+            ) : cases.length === 0 ? (
               <tr>
                 <td colSpan="8" className="py-16 text-center text-neutral-500">No cases found.</td>
               </tr>
-            ) : filtered.map(c => {
+            ) : cases.map(c => {
               const score = c.recovery_score != null ? Math.round(c.recovery_score * 100) : null;
               return (
                 <tr

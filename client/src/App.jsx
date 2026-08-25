@@ -49,43 +49,71 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    const eventSource = new EventSource('/api/run-recovery/stream');
+    let eventSource = null;
+    let retryTimeout = null;
 
-    eventSource.onopen = () => {
-      setIsConnected(true);
-    };
-
-    eventSource.onmessage = (e) => {
+    async function connectSSE() {
       try {
-        const data = JSON.parse(e.data);
-        if (data.type === 'CONNECTED') return;
+        // Obtain a short-lived ticket so EventSource can authenticate
+        // (browser EventSource cannot set Authorization headers)
+        const ticketRes = await authFetch('/api/run-recovery/stream-ticket', { method: 'POST' });
+        if (!ticketRes.ok) {
+          // Not authenticated yet — do not attempt SSE
+          setIsConnected(false);
+          return;
+        }
+        const { ticket } = await ticketRes.json();
+        if (!ticket) { setIsConnected(false); return; }
 
-        const newEvent = {
-          ...data,
-          id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-          time: new Date().toLocaleTimeString()
+        const url = `/api/run-recovery/stream?ticket=${encodeURIComponent(ticket)}`;
+        eventSource = new EventSource(url);
+
+        eventSource.onopen = () => {
+          setIsConnected(true);
         };
 
-        setEvents(prev => [newEvent, ...prev.slice(0, 150)]);
+        eventSource.onmessage = (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            if (data.type === 'CONNECTED') return;
 
-        if (data.status === 'BATCH_COMPLETE') {
-          setIsAgentRunning(false);
-          fetchStats();
-          showNotice(
-            `Recovery run complete — ₹${Number(data.recoveredTotal || 0).toLocaleString('en-IN')} recovered.`,
-          );
-        }
-      } catch (err) {
-        console.error('Error parsing SSE event:', err);
+            const newEvent = {
+              ...data,
+              id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+              time: new Date().toLocaleTimeString()
+            };
+
+            setEvents(prev => [newEvent, ...prev.slice(0, 150)]);
+
+            if (data.status === 'BATCH_COMPLETE') {
+              setIsAgentRunning(false);
+              fetchStats();
+              showNotice(
+                `Recovery run complete — ₹${Number(data.recoveredTotal || 0).toLocaleString('en-IN')} recovered.`,
+              );
+            }
+          } catch (err) {
+            console.error('Error parsing SSE event:', err);
+          }
+        };
+
+        eventSource.onerror = () => {
+          setIsConnected(false);
+          eventSource.close();
+          // Reconnect after 5 seconds with a fresh ticket
+          retryTimeout = setTimeout(connectSSE, 5000);
+        };
+      } catch (_err) {
+        setIsConnected(false);
+        retryTimeout = setTimeout(connectSSE, 5000);
       }
-    };
+    }
 
-    eventSource.onerror = () => {
-      setIsConnected(false);
-    };
+    connectSSE();
 
     return () => {
-      eventSource.close();
+      if (eventSource) eventSource.close();
+      if (retryTimeout) clearTimeout(retryTimeout);
     };
   }, []);
 
