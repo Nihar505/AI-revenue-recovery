@@ -5,7 +5,7 @@
 
 ---
 
-## 🌟 Executive Summary
+## Executive Summary
 
 **RecoverAI** is an AI-native autonomous revenue recovery platform for merchants processing thousands of payments daily. Rather than blindly retrying every failed transaction or spamming customers, RecoverAI evaluates payment failure telemetry, diagnoses root causes, assesses customer lifetime value, and executes safe, policy-bounded recovery actions — while intentionally refraining (**DO_NOTHING**) when recovery risk or churn fatigue outweighs expected return.
 
@@ -29,7 +29,7 @@ Merchant Command Center           (Real-Time SSE Live Stream)
 
 ---
 
-## 🚀 Core Differentiator: "AI That Knows When NOT to Act"
+## Core Differentiator: "AI That Knows When NOT to Act"
 
 Conventional recovery solutions either:
 1. **Blindly retry cards**, risking customer churn, issuer fraud flags, and high gateway decline fees.
@@ -43,7 +43,7 @@ RecoverAI balances **recovery yield vs. customer friction & risk**:
 
 ---
 
-## 🤖 Multi-Agent Architecture
+##  Multi-Agent Architecture
 
 ### 1. Revenue Detective (`server/agents/detective.js`)
 - **Inputs:** Amount, status, failure reason, payment method, retry count, customer LTV, past successes vs failures.
@@ -75,7 +75,7 @@ RecoverAI balances **recovery yield vs. customer friction & risk**:
 
 ---
 
-## 📊 Evaluation & Safety Benchmark
+##  Evaluation & Safety Benchmark
 
 RecoverAI includes a reproducible evaluation framework (`evaluation/metrics.js`):
 
@@ -92,7 +92,7 @@ RecoverAI includes a reproducible evaluation framework (`evaluation/metrics.js`)
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 - **Frontend:** React 19, Vite, Tailwind CSS, Recharts, Lucide Icons, React Router
 - **Backend:** Node.js, Express, Server-Sent Events (SSE) for real-time live feed
@@ -102,7 +102,7 @@ RecoverAI includes a reproducible evaluation framework (`evaluation/metrics.js`)
 
 ---
 
-## ⚡ Quick Start
+##  Quick Start
 
 ### 1. Prerequisites
 - Node.js v18+ (Tested on v20.19)
@@ -141,7 +141,7 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
-## 🎯 Demo Scenarios
+##  Demo Scenarios
 
 The dashboard includes 4 benchmark demo scenarios showcasing bounded AI decisions:
 
