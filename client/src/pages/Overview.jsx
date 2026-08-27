@@ -33,21 +33,13 @@ export function Overview({ stats, isAgentRunning, onRunAgent, onOpenCaseModal, l
     },
   ];
 
-  const trendData = stats?.charts?.trend?.length
-    ? stats.charts.trend
-    : [
-        { date: 'Mon', recovered: 24000 }, { date: 'Tue', recovered: 42000 },
-        { date: 'Wed', recovered: 68000 }, { date: 'Thu', recovered: 95000 },
-        { date: 'Fri', recovered: 142000 }, { date: 'Sat', recovered: 189000 },
-      ];
+  const trendData = stats?.charts?.trend || [];
 
-  const failureData = (stats?.charts?.byFailure || []).slice(0, 5).map((item) => ({
+  const displayFailures = (stats?.charts?.byFailure || []).slice(0, 5).map((item) => ({
+    fullName: item.failure_reason,
     name: item.failure_reason?.length > 20 ? `${item.failure_reason.slice(0, 18)}…` : item.failure_reason,
     value: item.amount,
   }));
-  const displayFailures = failureData.length ? failureData : [
-    { name: 'Network timeout', value: 450000 }, { name: 'Insufficient funds', value: 320000 }, { name: 'Issuer decline', value: 210000 },
-  ];
 
   return (
     <div className="mx-auto max-w-[1540px] space-y-8 pb-10">
@@ -91,7 +83,7 @@ export function Overview({ stats, isAgentRunning, onRunAgent, onOpenCaseModal, l
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">Ready to start?</p><h2 className="mt-1 text-lg font-semibold text-white">Run your first batch</h2><p className="mt-1 text-sm text-neutral-400">Click the button above to start reviewing a small batch of payments safely.</p></div><Clock3 className="h-5 w-5 shrink-0 text-white" /></div>
-          <div className="mt-6 grid grid-cols-3 divide-x divide-neutral-800"><div className="pr-3"><p className="text-xl font-semibold text-white">{Number(stats?.transactionsAnalyzed || 6000).toLocaleString('en-IN')}</p><p className="mt-1 text-xs leading-4 text-neutral-500">payments watched</p></div><div className="px-3"><p className="text-xl font-semibold text-white">{Number(stats?.recoveryOpportunities || 0).toLocaleString('en-IN')}</p><p className="mt-1 text-xs leading-4 text-neutral-500">opportunities found</p></div><div className="pl-3"><p className="text-xl font-semibold text-white">0</p><p className="mt-1 text-xs leading-4 text-neutral-500">mistakes made</p></div></div>
+          <div className="mt-6 grid grid-cols-3 divide-x divide-neutral-800"><div className="pr-3"><p className="text-xl font-semibold text-white">{Number(stats?.transactionsAnalyzed || 0).toLocaleString('en-IN')}</p><p className="mt-1 text-xs leading-4 text-neutral-500">payments watched</p></div><div className="px-3"><p className="text-xl font-semibold text-white">{Number(stats?.recoveryOpportunities || 0).toLocaleString('en-IN')}</p><p className="mt-1 text-xs leading-4 text-neutral-500">opportunities found</p></div><div className="pl-3"><p className="text-xl font-semibold text-white">0</p><p className="mt-1 text-xs leading-4 text-neutral-500">mistakes made</p></div></div>
         </div>
         <Link to="/policies" className="group rounded-2xl border border-neutral-800 bg-neutral-900 p-5 transition hover:border-neutral-700 hover:bg-neutral-800 sm:p-6"><ShieldCheck className="h-5 w-5 text-white" /><p className="mt-5 text-sm font-semibold text-white">Your rules are active</p><p className="mt-1 text-sm leading-5 text-neutral-400">You are in control. Choose your limits and how you want us to reach out to customers.</p><span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-white">Review your rules <ArrowUpRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></span></Link>
       </section>
@@ -110,8 +102,60 @@ export function Overview({ stats, isAgentRunning, onRunAgent, onOpenCaseModal, l
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5 sm:p-6"><div className="mb-5 flex items-start justify-between"><div><p className="text-sm font-semibold text-white">Money recovered over time</p><p className="mt-1 text-xs text-neutral-500">Total amount we have gotten back for you</p></div><TrendingUp className="h-4 w-4 text-white" /></div><div className="h-60"><ResponsiveContainer width="100%" height="100%"><AreaChart data={trendData} margin={{ left: -12, right: 4, top: 8 }}><defs><linearGradient id="recovery-area" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#ffffff" stopOpacity={0.15} /><stop offset="100%" stopColor="#ffffff" stopOpacity={0} /></linearGradient></defs><CartesianGrid stroke="#333333" strokeDasharray="3 4" vertical={false} opacity={0.45} /><XAxis dataKey="date" stroke="#666666" fontSize={11} tickLine={false} axisLine={false} /><YAxis stroke="#666666" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${Math.round(value / 1000)}k`} /><Tooltip contentStyle={{ background: '#000000', border: '1px solid #333333', borderRadius: 12, color: '#fff' }} formatter={(value) => [formatCurrency(value), 'Recovered']} /><Area type="monotone" dataKey="recovered" stroke="#ffffff" strokeWidth={2.5} fill="url(#recovery-area)" /></AreaChart></ResponsiveContainer></div></div>
-        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5 sm:p-6"><div className="mb-5 flex items-start justify-between"><div><p className="text-sm font-semibold text-white">Why are payments failing?</p><p className="mt-1 text-xs text-neutral-500">Total lost sales broken down by the reason</p></div><Activity className="h-4 w-4 text-white" /></div><div className="h-60"><ResponsiveContainer width="100%" height="100%"><BarChart data={displayFailures} layout="vertical" margin={{ left: 14, right: 4, top: 4 }}><CartesianGrid stroke="#333333" strokeDasharray="3 4" horizontal={false} opacity={0.4} /><XAxis type="number" stroke="#666666" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${Math.round(value / 1000)}k`} /><YAxis dataKey="name" type="category" width={138} stroke="#999999" fontSize={10} tickLine={false} axisLine={false} /><Tooltip contentStyle={{ background: '#000000', border: '1px solid #333333', borderRadius: 12, color: '#fff' }} formatter={(value) => [formatCurrency(value), 'At risk']} /><Bar dataKey="value" radius={[0, 7, 7, 0]}>{displayFailures.map((entry, index) => <Cell key={entry.name || index} fill={['#ffffff', '#cccccc', '#999999', '#666666', '#333333'][index % 5]} />)}</Bar></BarChart></ResponsiveContainer></div></div>
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5 sm:p-6">
+          <div className="mb-5 flex items-start justify-between"><div><p className="text-sm font-semibold text-white">Money recovered over time</p><p className="mt-1 text-xs text-neutral-500">Total amount we have gotten back for you</p></div><TrendingUp className="h-4 w-4 text-white" /></div>
+          <div className="h-60">
+            {trendData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData} margin={{ left: -12, right: 4, top: 8 }}>
+                  <defs><linearGradient id="recovery-area" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#ffffff" stopOpacity={0.15} /><stop offset="100%" stopColor="#ffffff" stopOpacity={0} /></linearGradient></defs>
+                  <CartesianGrid stroke="#333333" strokeDasharray="3 4" vertical={false} opacity={0.45} />
+                  <XAxis dataKey="date" stroke="#666666" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#666666" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${Math.round(value / 1000)}k`} />
+                  <Tooltip contentStyle={{ background: '#000000', border: '1px solid #333333', borderRadius: 12, color: '#fff' }} wrapperStyle={{ zIndex: 50 }} formatter={(value) => [formatCurrency(value), 'Recovered']} />
+                  <Area type="monotone" dataKey="recovered" stroke="#ffffff" strokeWidth={2.5} fill="url(#recovery-area)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <p className="text-sm text-neutral-400">No recovery data recorded yet</p>
+                <p className="mt-1 text-xs text-neutral-600">Recoveries will appear here as payments are processed</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5 sm:p-6">
+          <div className="mb-5 flex items-start justify-between"><div><p className="text-sm font-semibold text-white">Why are payments failing?</p><p className="mt-1 text-xs text-neutral-500">Total lost sales broken down by the reason</p></div><Activity className="h-4 w-4 text-white" /></div>
+          <div className="h-60">
+            {displayFailures.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={displayFailures} layout="vertical" margin={{ left: 14, right: 4, top: 4 }}>
+                  <CartesianGrid stroke="#333333" strokeDasharray="3 4" horizontal={false} opacity={0.4} />
+                  <XAxis type="number" stroke="#666666" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${Math.round(value / 1000)}k`} />
+                  <YAxis dataKey="name" type="category" width={138} stroke="#999999" fontSize={10} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{ background: '#000000', border: '1px solid #333333', borderRadius: 12, color: '#fff' }}
+                    wrapperStyle={{ zIndex: 50 }}
+                    labelFormatter={(label, payload) => {
+                      if (payload && payload[0] && payload[0].payload && payload[0].payload.fullName) {
+                        return payload[0].payload.fullName;
+                      }
+                      return label || 'Failure Reason';
+                    }}
+                    formatter={(value) => [formatCurrency(value), 'Amount At Risk']}
+                  />
+                  <Bar dataKey="value" radius={[0, 7, 7, 0]}>{displayFailures.map((entry, index) => <Cell key={entry.name || index} fill={['#ffffff', '#cccccc', '#999999', '#666666', '#333333'][index % 5]} />)}</Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center text-center">
+                <p className="text-sm text-neutral-400">No failed payments recorded</p>
+                <p className="mt-1 text-xs text-neutral-600">Breakdown of failure reasons will appear here</p>
+              </div>
+            )}
+          </div>
+        </div>
       </section>
     </div>
   );

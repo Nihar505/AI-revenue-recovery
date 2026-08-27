@@ -44,8 +44,8 @@ const PAYMENT_METHODS = ['upi', 'card', 'netbanking', 'wallet', 'emi'];
 
 // 1. Generate Customers
 const insertCustomer = db.prepare(`
-  INSERT INTO customers (id, name, email, lifetime_value, successful_payments, failed_payments, last_payment_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO customers (id, user_id, name, email, lifetime_value, successful_payments, failed_payments, last_payment_at)
+  VALUES (?, 'usr_default_admin', ?, ?, ?, ?, ?, ?)
 `);
 
 const customers = [];
@@ -84,8 +84,8 @@ for (let i = 0; i < CUSTOMER_COUNT; i++) {
 
 // 2. Generate 4 Benchmark Demo Scenario Cases
 const insertPayment = db.prepare(`
-  INSERT INTO payments (id, customer_id, amount, currency, status, failure_reason, payment_method, retry_count, created_at)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO payments (id, user_id, customer_id, amount, currency, status, failure_reason, payment_method, retry_count, created_at)
+  VALUES (?, 'usr_default_admin', ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 const insertCase = db.prepare(`

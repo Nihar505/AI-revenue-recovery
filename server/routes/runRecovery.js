@@ -187,6 +187,7 @@ runRecoveryRouter.post('/batch', async (req, res) => {
       safeLimit = limit;
     }
 
+    const userId = req.user?.id;
     // Only process unresolved cases. Marking them first prevents overlapping runs
     // from executing recovery actions twice for the same payment.
     const pendingCases = db.prepare(`
@@ -194,10 +195,10 @@ runRecoveryRouter.post('/batch', async (req, res) => {
       FROM recovery_cases rc
       JOIN payments p ON p.id = rc.payment_id
       JOIN customers c ON c.id = p.customer_id
-      WHERE rc.status = 'pending'
+      WHERE rc.status = 'pending' AND p.user_id = ?
       ORDER BY rc.created_at ASC
       LIMIT ?
-    `).all(safeLimit);
+    `).all(userId, safeLimit);
     const markProcessing = db.prepare(`
       UPDATE recovery_cases SET status = 'processing'
       WHERE id = ? AND status = 'pending'
@@ -255,14 +256,15 @@ runRecoveryRouter.post('/case/:caseId', async (req, res) => {
   try {
     const db = getDb();
     const { caseId } = req.params;
+    const userId = req.user?.id;
 
     const row = db.prepare(`
       SELECT rc.id as case_id, rc.status as case_status, p.*, c.name, c.email, c.lifetime_value, c.successful_payments, c.failed_payments
       FROM payments p
       JOIN recovery_cases rc ON rc.payment_id = p.id
       JOIN customers c ON c.id = p.customer_id
-      WHERE rc.id = ?
-    `).get(caseId);
+      WHERE rc.id = ? AND p.user_id = ?
+    `).get(caseId, userId);
 
     if (!row) return res.status(404).json({ error: 'Case not found' });
     if (row.case_status !== 'pending') {

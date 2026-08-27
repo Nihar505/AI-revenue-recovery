@@ -22,15 +22,17 @@ agentsRouter.get('/actions', (req, res) => {
       safeLimit = parsed;
     }
 
+    const userId = req.user?.id;
     const actions = db.prepare(`
       SELECT aa.*, rc.payment_id, p.amount, p.currency, c.name as customer_name
       FROM agent_actions aa
       JOIN recovery_cases rc ON rc.id = aa.case_id
       JOIN payments p ON p.id = rc.payment_id
       JOIN customers c ON c.id = p.customer_id
+      WHERE p.user_id = ?
       ORDER BY aa.created_at DESC
       LIMIT ?
-    `).all(safeLimit);
+    `).all(userId, safeLimit);
 
     res.json({ actions });
   } catch (err) {

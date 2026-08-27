@@ -23,6 +23,7 @@ export function initDb() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS customers (
       id TEXT PRIMARY KEY,
+      user_id TEXT,
       name TEXT NOT NULL,
       email TEXT NOT NULL UNIQUE,
       lifetime_value REAL DEFAULT 0,
@@ -33,6 +34,7 @@ export function initDb() {
 
     CREATE TABLE IF NOT EXISTS payments (
       id TEXT PRIMARY KEY,
+      user_id TEXT,
       customer_id TEXT NOT NULL,
       amount REAL NOT NULL,
       currency TEXT DEFAULT 'INR',
@@ -127,6 +129,23 @@ export function initDb() {
   // Ensure google_id uniqueness via index (ALTER TABLE ADD COLUMN cannot include constraints)
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id) WHERE google_id IS NOT NULL");
 
+  // Migration: Ensure user_id column exists on customers and payments
+  const customerColumns = db.prepare("PRAGMA table_info(customers)").all().map(c => c.name);
+  if (!customerColumns.includes('user_id')) {
+    db.exec("ALTER TABLE customers ADD COLUMN user_id TEXT");
+  }
+  db.exec("CREATE INDEX IF NOT EXISTS idx_customers_user ON customers(user_id)");
+
+  const paymentColumns = db.prepare("PRAGMA table_info(payments)").all().map(c => c.name);
+  if (!paymentColumns.includes('user_id')) {
+    db.exec("ALTER TABLE payments ADD COLUMN user_id TEXT");
+  }
+  db.exec("CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id)");
+
+  // Backfill unassigned existing seed dataset to default admin user ('usr_default_admin')
+  db.exec("UPDATE customers SET user_id = 'usr_default_admin' WHERE user_id IS NULL");
+  db.exec("UPDATE payments SET user_id = 'usr_default_admin' WHERE user_id IS NULL");
+
   // Seed default user if none exists
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
   if (userCount === 0) {
@@ -137,6 +156,12 @@ export function initDb() {
       VALUES (?, ?, ?, ?, 'local')
     `).run('usr_default_admin', 'RecoverAI Merchant', 'admin@recover.ai', hash);
     console.log('[DB] Seeded default user admin@recover.ai / password123');
+  }
+
+  // Ensure Demo Account exists & has mock data seeded
+  const demoPayments = db.prepare("SELECT COUNT(*) as count FROM payments WHERE user_id = 'usr_demo_account'").get().count;
+  if (demoPayments === 0) {
+    import('./seedDemo.js').then(m => m.seedDemoAccount());
   }
 
   console.log('[DB] Schema initialized at', DB_PATH);

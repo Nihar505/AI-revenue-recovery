@@ -8,69 +8,85 @@ export const analyticsRouter = Router();
 analyticsRouter.get('/overview', (req, res) => {
   try {
     const db = getDb();
+    const userId = req.user?.id;
 
-    // Revenue at risk = sum of failed/abandoned payment amounts
+    // Revenue at risk = sum of failed/abandoned payment amounts for logged in user
     const revenueAtRisk = db.prepare(`
       SELECT COALESCE(SUM(amount), 0) as total
       FROM payments
-      WHERE status IN ('failed', 'abandoned')
-    `).get();
+      WHERE user_id = ? AND status IN ('failed', 'abandoned')
+    `).get(userId);
 
     // Total transactions analyzed (payments with a recovery case)
     const analyzed = db.prepare(`
-      SELECT COUNT(*) as count FROM recovery_cases WHERE status != 'pending'
-    `).get();
+      SELECT COUNT(*) as count
+      FROM recovery_cases rc
+      JOIN payments p ON p.id = rc.payment_id
+      WHERE p.user_id = ? AND rc.status != 'pending'
+    `).get(userId);
 
-    // Recovery opportunities (score >= 0.6)
+    // Recovery opportunities (score >= 0.5)
     const opportunities = db.prepare(`
-      SELECT COUNT(*) as count FROM recovery_cases WHERE recovery_score >= 0.5
-    `).get();
+      SELECT COUNT(*) as count
+      FROM recovery_cases rc
+      JOIN payments p ON p.id = rc.payment_id
+      WHERE p.user_id = ? AND rc.recovery_score >= 0.5
+    `).get(userId);
 
     // Recovered revenue
     const recovered = db.prepare(`
-      SELECT COALESCE(SUM(recovered_amount), 0) as total FROM recovery_outcomes WHERE outcome = 'recovered'
-    `).get();
+      SELECT COALESCE(SUM(ro.recovered_amount), 0) as total
+      FROM recovery_outcomes ro
+      JOIN recovery_cases rc ON rc.id = ro.case_id
+      JOIN payments p ON p.id = rc.payment_id
+      WHERE p.user_id = ? AND ro.outcome = 'recovered'
+    `).get(userId);
 
     // Total payments analyzed (all)
-    const totalPayments = db.prepare('SELECT COUNT(*) as count FROM payments').get();
+    const totalPayments = db.prepare(`
+      SELECT COUNT(*) as count FROM payments WHERE user_id = ?
+    `).get(userId);
 
     // Recovery by action
     const byAction = db.prepare(`
-      SELECT recommended_action as action, COUNT(*) as count
-      FROM recovery_cases
-      WHERE recommended_action IS NOT NULL
-      GROUP BY recommended_action
-    `).all();
+      SELECT rc.recommended_action as action, COUNT(*) as count
+      FROM recovery_cases rc
+      JOIN payments p ON p.id = rc.payment_id
+      WHERE p.user_id = ? AND rc.recommended_action IS NOT NULL
+      GROUP BY rc.recommended_action
+    `).all(userId);
 
     // Revenue by failure reason
     const byFailure = db.prepare(`
       SELECT failure_reason, COALESCE(SUM(amount), 0) as amount
       FROM payments
-      WHERE status = 'failed' AND failure_reason IS NOT NULL
+      WHERE user_id = ? AND status = 'failed' AND failure_reason IS NOT NULL
       GROUP BY failure_reason
-    `).all();
+    `).all(userId);
 
     // Recovery trend
     const trend = db.prepare(`
       SELECT date(ro.timestamp) as date,
              COALESCE(SUM(ro.recovered_amount), 0) as recovered
       FROM recovery_outcomes ro
-      WHERE ro.outcome = 'recovered'
+      JOIN recovery_cases rc ON rc.id = ro.case_id
+      JOIN payments p ON p.id = rc.payment_id
+      WHERE p.user_id = ? AND ro.outcome = 'recovered'
       GROUP BY date(ro.timestamp)
       ORDER BY date ASC
       LIMIT 14
-    `).all();
+    `).all(userId);
 
     // Action distribution for cases
     const actionDist = db.prepare(`
-      SELECT recommended_action as action,
+      SELECT rc.recommended_action as action,
              COUNT(*) as count,
              COALESCE(SUM(p.amount), 0) as total_amount
       FROM recovery_cases rc
       JOIN payments p ON p.id = rc.payment_id
-      WHERE recommended_action IS NOT NULL
-      GROUP BY recommended_action
-    `).all();
+      WHERE p.user_id = ? AND rc.recommended_action IS NOT NULL
+      GROUP BY rc.recommended_action
+    `).all(userId);
 
     const recoveryRate =
       revenueAtRisk.total > 0

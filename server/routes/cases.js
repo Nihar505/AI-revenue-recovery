@@ -7,6 +7,7 @@ export const casesRouter = Router();
 casesRouter.get('/', (req, res) => {
   try {
     const db = getDb();
+    const userId = req.user?.id;
     const { status, q = '', limit, offset } = req.query;
     let safeLimit = 50;
     let safeOffset = 0;
@@ -52,8 +53,8 @@ casesRouter.get('/', (req, res) => {
       JOIN customers c ON c.id = p.customer_id
       LEFT JOIN recovery_outcomes ro ON ro.case_id = rc.id
     `;
-    const filters = [];
-    const params = [];
+    const filters = ['p.user_id = ?'];
+    const params = [userId];
     if (status) {
       filters.push('rc.status = ?');
       params.push(status);
@@ -90,6 +91,7 @@ casesRouter.get('/', (req, res) => {
 casesRouter.get('/:id', (req, res) => {
   try {
     const db = getDb();
+    const userId = req.user?.id;
     const { id } = req.params;
 
     const caseData = db.prepare(`
@@ -98,8 +100,8 @@ casesRouter.get('/:id', (req, res) => {
       FROM recovery_cases rc
       JOIN payments p ON p.id = rc.payment_id
       JOIN customers c ON c.id = p.customer_id
-      WHERE rc.id = ?
-    `).get(id);
+      WHERE rc.id = ? AND p.user_id = ?
+    `).get(id, userId);
 
     if (!caseData) return res.status(404).json({ error: 'Case not found' });
 
@@ -112,8 +114,8 @@ casesRouter.get('/:id', (req, res) => {
     ).get(id);
 
     const paymentHistory = db.prepare(`
-      SELECT * FROM payments WHERE customer_id = ? ORDER BY created_at DESC LIMIT 10
-    `).all(caseData.customer_id);
+      SELECT * FROM payments WHERE customer_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT 10
+    `).all(caseData.customer_id, userId);
 
     res.json({ case: caseData, actions, outcome, paymentHistory });
   } catch (err) {
