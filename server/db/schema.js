@@ -113,6 +113,22 @@ export function initDb() {
       auth_provider TEXT DEFAULT 'local',
       created_at TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS audit_sheets (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      audit_type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      period_label TEXT,
+      run_id TEXT,
+      month_str TEXT,
+      data_json TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_audits_user ON audit_sheets(user_id);
+    CREATE INDEX IF NOT EXISTS idx_audits_type ON audit_sheets(audit_type);
   `);
 
   // Migration: Ensure new OAuth columns exist for existing databases

@@ -120,13 +120,15 @@ export function seedDemoAccount() {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)
   `);
 
-  // Spread payments across 5 months (approx 150 days) with different counts per month
+  // Spread payments across 6 recent months with varied counts per month
+  const now = new Date();
   const MONTH_OFFSETS = [
-    { monthLabel: 'Jan', startDaysAgo: 140, count: 14 },
-    { monthLabel: 'Feb', startDaysAgo: 110, count: 16 },
-    { monthLabel: 'Mar', startDaysAgo: 80, count: 18 },
-    { monthLabel: 'Apr', startDaysAgo: 50, count: 20 },
-    { monthLabel: 'May', startDaysAgo: 20, count: 22 }
+    { offsetMonths: 5, startDaysAgo: 150, count: 12 },
+    { offsetMonths: 4, startDaysAgo: 120, count: 15 },
+    { offsetMonths: 3, startDaysAgo: 90, count: 18 },
+    { offsetMonths: 2, startDaysAgo: 60, count: 22 },
+    { offsetMonths: 1, startDaysAgo: 30, count: 25 },
+    { offsetMonths: 0, startDaysAgo: 5, count: 18 }
   ];
 
   let paymentCount = 0;

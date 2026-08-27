@@ -7,6 +7,7 @@ import { Opportunities } from './pages/Opportunities';
 import { AgentActivity } from './pages/AgentActivity';
 import { PolicyCenter } from './pages/PolicyCenter';
 import { Analytics } from './pages/Analytics';
+import { Audits } from './pages/Audits';
 import { Evaluation } from './pages/Evaluation';
 import { CaseDetailModal } from './components/CaseDetailModal';
 import { Login } from './pages/Login';
@@ -209,6 +210,10 @@ function AppContent() {
             <Route
               path="/analytics"
               element={<Analytics stats={stats} />}
+            />
+            <Route
+              path="/audits"
+              element={<Audits />}
             />
             <Route
               path="/evaluation"

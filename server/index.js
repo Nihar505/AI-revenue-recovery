@@ -14,6 +14,7 @@ import { agentsRouter } from './routes/agents.js';
 import { policiesRouter } from './routes/policies.js';
 import { analyticsRouter } from './routes/analytics.js';
 import { runRecoveryRouter } from './routes/runRecovery.js';
+import { auditsRouter } from './routes/audits.js';
 import { initDb } from './db/schema.js';
 import { requireAuth } from './middleware/auth.js';
 
@@ -33,6 +34,7 @@ app.use('/api/agents', requireAuth, agentsRouter);
 app.use('/api/policies', requireAuth, policiesRouter);
 app.use('/api/analytics', requireAuth, analyticsRouter);
 app.use('/api/run-recovery', requireAuth, runRecoveryRouter);
+app.use('/api/audits', requireAuth, auditsRouter);
 
 // Global error handler
 app.use((err, req, res, next) => {

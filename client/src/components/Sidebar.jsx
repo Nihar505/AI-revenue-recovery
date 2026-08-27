@@ -8,6 +8,7 @@ import {
   ShieldCheck, 
   BarChart3, 
   CheckCircle2,
+  FileText,
   Sparkles,
   Zap,
   LogOut,
@@ -23,6 +24,7 @@ export function Sidebar({ isAgentRunning, onRunAgent, isOpen, onClose }) {
     { to: '/activity', label: 'Activity Log', icon: Bot, badge: isAgentRunning ? 'ACTIVE' : null },
     { to: '/policies', label: 'Your Rules', icon: ShieldCheck },
     { to: '/analytics', label: 'Reports', icon: BarChart3 },
+    { to: '/audits', label: 'Audit Sheets', icon: FileText },
     { to: '/evaluation', label: 'System Tests', icon: CheckCircle2 },
   ];
 
