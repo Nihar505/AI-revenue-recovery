@@ -14,6 +14,7 @@ import { Login } from './pages/Login';
 import { GoogleCallback } from './pages/GoogleCallback';
 import { AuthProvider, useAuth, authFetch } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { LoadingScreen } from './components/LoadingScreen';
 
 function AppContent() {
   const { user } = useAuth();
@@ -25,6 +26,8 @@ function AppContent() {
   const [isNavigationOpen, setIsNavigationOpen] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [notice, setNotice] = useState(null);
+  // True only during initial data load after login/refresh
+  const [appLoading, setAppLoading] = useState(true);
   const navigate = useNavigate();
 
   const showNotice = (message, tone = 'success') => {
@@ -72,11 +75,13 @@ function AppContent() {
 
   useEffect(() => {
     if (user) {
-      fetchStats();
-      fetchInitialActions();
+      setAppLoading(true);
+      Promise.all([fetchStats(), fetchInitialActions()])
+        .finally(() => setAppLoading(false));
     } else {
       setStats(null);
       setEvents([]);
+      setAppLoading(false);
     }
   }, [user]);
 
@@ -183,6 +188,10 @@ function AppContent() {
       showNotice(err.message || 'Recovery run could not be started.', 'error');
     }
   };
+
+  if (appLoading) {
+    return <LoadingScreen message="Loading your dashboard..." />;
+  }
 
   return (
     <div className="min-h-screen bg-black text-white font-sans">
