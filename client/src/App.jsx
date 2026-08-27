@@ -12,10 +12,11 @@ import { Evaluation } from './pages/Evaluation';
 import { CaseDetailModal } from './components/CaseDetailModal';
 import { Login } from './pages/Login';
 import { GoogleCallback } from './pages/GoogleCallback';
-import { AuthProvider, authFetch } from './context/AuthContext';
+import { AuthProvider, useAuth, authFetch } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function AppContent() {
+  const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [events, setEvents] = useState([]);
   const [isAgentRunning, setIsAgentRunning] = useState(false);
@@ -46,21 +47,53 @@ function AppContent() {
     }
   };
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
+  const fetchInitialActions = async () => {
+    try {
+      const res = await authFetch('/api/agents/actions?limit=50');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data.actions)) {
+        const formatted = data.actions.map(act => ({
+          id: act.id,
+          agent: act.agent,
+          action: act.action,
+          message: act.reason,
+          status: act.policy_result === 'PASSED' || act.policy_result === 'APPROVED' ? 'APPROVED' : act.policy_result === 'BLOCKED' ? 'BLOCKED' : act.status?.toUpperCase() || 'COMPLETED',
+          amount: act.amount,
+          paymentId: act.payment_id,
+          time: new Date(act.created_at).toLocaleTimeString()
+        }));
+        setEvents(formatted);
+      }
+    } catch (e) {
+      console.error('Failed to load initial agent actions:', e);
+    }
+  };
 
   useEffect(() => {
+    if (user) {
+      fetchStats();
+      fetchInitialActions();
+    } else {
+      setStats(null);
+      setEvents([]);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setIsConnected(false);
+      return;
+    }
+
     let eventSource = null;
     let retryTimeout = null;
 
     async function connectSSE() {
       try {
         // Obtain a short-lived ticket so EventSource can authenticate
-        // (browser EventSource cannot set Authorization headers)
         const ticketRes = await authFetch('/api/run-recovery/stream-ticket', { method: 'POST' });
         if (!ticketRes.ok) {
-          // Not authenticated yet — do not attempt SSE
           setIsConnected(false);
           return;
         }
@@ -101,8 +134,7 @@ function AppContent() {
 
         eventSource.onerror = () => {
           setIsConnected(false);
-          eventSource.close();
-          // Reconnect after 5 seconds with a fresh ticket
+          if (eventSource) eventSource.close();
           retryTimeout = setTimeout(connectSSE, 5000);
         };
       } catch (_err) {
@@ -117,7 +149,7 @@ function AppContent() {
       if (eventSource) eventSource.close();
       if (retryTimeout) clearTimeout(retryTimeout);
     };
-  }, []);
+  }, [user]);
 
   const handleRunAgent = async () => {
     if (isAgentRunning) return;

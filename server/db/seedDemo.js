@@ -1,3 +1,4 @@
+import path from 'path';
 import bcrypt from 'bcryptjs';
 import { getDb, initDb } from './schema.js';
 
@@ -165,10 +166,13 @@ export function seedDemoAccount() {
         const score = 0.55 + ((paymentCount * 13) % 40) / 100; // 0.55 to 0.94
         const risk = 0.10 + ((paymentCount * 7) % 30) / 100;
 
-        // Case status: ~60% resolved, 25% pending, 15% processing
+        // Case status: recent payments are left pending for live recovery runs
         let caseStatus = 'resolved';
-        if (paymentCount % 4 === 1) caseStatus = 'pending';
-        if (paymentCount % 7 === 2) caseStatus = 'processing';
+        if (paymentCount >= 65 || paymentCount % 5 === 1) {
+          caseStatus = 'pending';
+        } else if (paymentCount % 7 === 2) {
+          caseStatus = 'processing';
+        }
 
         insertCase.run(caseId, payId, score, risk, failInfo.cause, failInfo.action, 0.88, caseStatus, createdAt);
 
@@ -261,8 +265,11 @@ export function seedDemoAccount() {
   console.log(`  - ${actionCount} Agent Activity Actions`);
 }
 
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+
 // Standalone execution if run directly via `node server/db/seedDemo.js`
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   seedDemoAccount();
   console.log('🎉 Dedicated Demo Account seed completed successfully!');
   process.exit(0);
