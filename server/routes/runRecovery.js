@@ -244,6 +244,64 @@ runRecoveryRouter.post('/batch', async (req, res) => {
         recoveredTotal,
         message: `Recovery run completed. Recovered total: ₹${recoveredTotal.toLocaleString('en-IN')}`,
       });
+
+      // ─── Demo account: auto-replenish pending queue ───────────────────
+      // When the demo account's pending cases run low, silently recycle
+      // oldest resolved/recovered cases back to pending so the queue never
+      // runs dry. This is ONLY triggered for the dedicated demo account.
+      const DEMO_USER_ID = 'usr_demo_account';
+      const REPLENISH_THRESHOLD = 25; // replenish when fewer than this remain
+      const REPLENISH_BATCH = 60;     // recycle this many cases at once
+
+      if (userId === DEMO_USER_ID) {
+        try {
+          const { pendingCount } = db.prepare(`
+            SELECT COUNT(*) as pendingCount
+            FROM recovery_cases rc
+            JOIN payments p ON p.id = rc.payment_id
+            WHERE rc.status = 'pending' AND p.user_id = ?
+          `).get(DEMO_USER_ID);
+
+          if (pendingCount < REPLENISH_THRESHOLD) {
+            // Pick oldest resolved/failed/escalated cases to recycle
+            const toRecycle = db.prepare(`
+              SELECT rc.id as case_id
+              FROM recovery_cases rc
+              JOIN payments p ON p.id = rc.payment_id
+              WHERE p.user_id = ? AND rc.status IN ('resolved', 'failed', 'escalated', 'recovered')
+              ORDER BY rc.created_at ASC
+              LIMIT ?
+            `).all(DEMO_USER_ID, REPLENISH_BATCH);
+
+            if (toRecycle.length > 0) {
+              const ids = toRecycle.map(r => r.case_id);
+              const placeholders = ids.map(() => '?').join(',');
+
+              // Remove outcomes and live agent actions for these cases
+              db.prepare(`DELETE FROM recovery_outcomes WHERE case_id IN (${placeholders})`).run(...ids);
+              db.prepare(`
+                DELETE FROM agent_actions
+                WHERE case_id IN (${placeholders})
+                AND id NOT LIKE 'act_demo_%'
+              `).run(...ids);
+
+              // Reset cases to pending
+              db.prepare(`
+                UPDATE recovery_cases
+                SET status = 'pending'
+                WHERE id IN (${placeholders})
+              `).run(...ids);
+
+              console.log(`[Demo Replenish] Recycled ${ids.length} cases back to pending (had ${pendingCount} left).`);
+            }
+          }
+        } catch (replenishErr) {
+          // Non-critical — log but don't crash
+          console.error('[Demo Replenish] Error during replenish:', replenishErr.message);
+        }
+      }
+      // ─────────────────────────────────────────────────────────────────
+
     })();
 
   } catch (err) {

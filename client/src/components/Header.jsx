@@ -3,7 +3,7 @@ import { Menu, RefreshCw, Radio, ShieldCheck } from 'lucide-react';
 
 export function Header({ isConnected, onRefresh, lastUpdated, onOpenNavigation }) {
   return (
-    <header className="sticky top-0 z-20 flex h-[72px] items-center justify-between border-b border-neutral-800 bg-black/85 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-20 flex h-[72px] items-center justify-between border-b border-neutral-800 bg-black/85 px-4 backdrop-blur-xl sm:px-6 lg:px-8 print:hidden">
       <div className="flex min-w-0 items-center gap-3">
         <button
           onClick={onOpenNavigation}

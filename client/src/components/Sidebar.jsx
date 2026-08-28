@@ -31,7 +31,7 @@ export function Sidebar({ isAgentRunning, onRunAgent, isOpen, onClose }) {
   return (
     <>
       {isOpen && <button aria-label="Close navigation" onClick={onClose} className="fixed inset-0 z-30 bg-black/70 backdrop-blur-sm lg:hidden" />}
-      <aside className={`fixed inset-y-0 left-0 z-40 flex h-screen w-72 flex-col border-r border-neutral-800 bg-black transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+      <aside className={`fixed inset-y-0 left-0 z-40 flex h-screen w-72 flex-col border-r border-neutral-800 bg-black transition-transform duration-300 print:hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
       <div className="flex items-center justify-between border-b border-neutral-800 p-5">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-xl border border-neutral-700 bg-neutral-900 p-[1.5px]">

@@ -17,3 +17,173 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #333333; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #666666; }
+
+/* ==========================================================================
+   Audit Sheet PDF & Print Export Stylesheet
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 14mm 14mm 14mm;
+  }
+
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide app shell and interactive chrome when printing */
+  header,
+  aside,
+  nav,
+  .print\:hidden,
+  button,
+  [role="status"],
+  .fixed {
+    display: none !important;
+  }
+
+  /* Reset layout constraints for print */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  .lg\:pl-72 {
+    padding-left: 0 !important;
+  }
+
+  /* Printable Audit Sheet Styling */
+  #printable-audit {
+    border: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    width: 100% !important;
+  }
+
+  #printable-audit * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Recharts Responsive & SVG Containers in Print */
+  #printable-audit .recharts-responsive-container {
+    width: 100% !important;
+    height: 220px !important;
+    min-height: 220px !important;
+  }
+
+  #printable-audit .recharts-wrapper {
+    width: 100% !important;
+    height: 100% !important;
+    position: relative !important;
+  }
+
+  #printable-audit svg.recharts-surface {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* =========================================================================
+     CRUCIAL: Make SVG Chart Data Elements High-Contrast and Visible in Print
+     (Overrides dark-mode white fills with print-ready crisp dark tones)
+     ========================================================================= */
+
+  /* Bar Charts: Crisp dark bars with clean outline on white paper */
+  #printable-audit .recharts-bar-rectangle path,
+  #printable-audit .recharts-bar-rectangle rect,
+  #printable-audit .recharts-rectangle,
+  #printable-audit rect.recharts-bar-rectangle,
+  #printable-audit .recharts-bar-rectangles rect,
+  #printable-audit .recharts-layer.recharts-bar-rectangles path {
+    fill: #171717 !important;
+    stroke: #000000 !important;
+    stroke-width: 0.5px !important;
+    opacity: 1 !important;
+  }
+
+  /* Area Charts: Crisp dark trend curve line and readable light-gray area fill */
+  #printable-audit .recharts-area-curve,
+  #printable-audit path.recharts-curve {
+    stroke: #171717 !important;
+    stroke-width: 2.5px !important;
+    fill: none !important;
+  }
+
+  #printable-audit .recharts-area-area,
+  #printable-audit path.recharts-area-area {
+    fill: #e5e5e5 !important;
+    opacity: 0.85 !important;
+  }
+
+  /* Chart Grid Lines in Print */
+  #printable-audit .recharts-cartesian-grid line,
+  #printable-audit .recharts-cartesian-grid-horizontal line,
+  #printable-audit .recharts-cartesian-grid-vertical line {
+    stroke: #e5e7eb !important;
+    stroke-dasharray: 3 3 !important;
+    stroke-opacity: 1 !important;
+  }
+
+  /* Chart Axis Lines & Ticks in Print */
+  #printable-audit .recharts-cartesian-axis-line {
+    stroke: #6b7280 !important;
+    stroke-width: 1px !important;
+  }
+
+  #printable-audit .recharts-cartesian-axis-tick text,
+  #printable-audit .recharts-cartesian-axis-tick-value,
+  #printable-audit .recharts-text {
+    fill: #1f2937 !important;
+    font-size: 9px !important;
+    font-weight: 500 !important;
+  }
+
+  /* Pure SVG Chart elements inside printable audit */
+  #printable-audit svg {
+    width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+  #printable-audit svg text {
+    fill: #000000 !important;
+  }
+  #printable-audit svg line {
+    stroke: #d1d5db !important;
+  }
+  #printable-audit svg rect {
+    fill: #171717 !important;
+    stroke: #000000 !important;
+  }
+  #printable-audit svg polyline {
+    stroke: #000000 !important;
+    stroke-width: 2.5px !important;
+  }
+  #printable-audit svg circle {
+    fill: #000000 !important;
+    stroke: #ffffff !important;
+  }
+  #printable-audit svg path {
+    fill: #e5e7eb !important;
+    opacity: 0.8 !important;
+  }
+
+  /* Page-break avoidance for audit sections & table rows */
+  .page-break-avoid,
+  #printable-audit .page-break-avoid,
+  #printable-audit table,
+  #printable-audit tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+

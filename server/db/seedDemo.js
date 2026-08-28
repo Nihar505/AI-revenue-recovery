@@ -70,8 +70,30 @@ export function seedDemoAccount() {
     { name: 'Sanya Mukherjee', email: 'sanya.mukherjee@example.com' },
     { name: 'Rishi Chopra', email: 'rishi.chopra@example.com' },
     { name: 'Divya Bose', email: 'divya.bose@example.com' },
-    { name: 'Gaurav Malhotra', email: 'gaurav.malhotra@example.com' }
+    { name: 'Gaurav Malhotra', email: 'gaurav.malhotra@example.com' },
+    { name: 'Nisha Agarwal', email: 'nisha.agarwal@example.com' },
+    { name: 'Aditya Banerjee', email: 'aditya.banerjee@example.com' },
+    { name: 'Meera Krishnan', email: 'meera.krishnan@example.com' },
+    { name: 'Suresh Pillai', email: 'suresh.pillai@example.com' },
+    { name: 'Lakshmi Rao', email: 'lakshmi.rao@example.com' },
+    { name: 'Deepak Tiwari', email: 'deepak.tiwari@example.com' },
+    { name: 'Ritu Pandey', email: 'ritu.pandey@example.com' },
+    { name: 'Manish Kumar', email: 'manish.kumar@example.com' },
+    { name: 'Swati Shah', email: 'swati.shah@example.com' },
+    { name: 'Kartik Bhatt', email: 'kartik.bhatt@example.com' },
+    { name: 'Pallavi Menon', email: 'pallavi.menon@example.com' },
+    { name: 'Arun Srivastava', email: 'arun.srivastava@example.com' },
+    { name: 'Bhavna Jain', email: 'bhavna.jain@example.com' },
+    { name: 'Nikhil Dubey', email: 'nikhil.dubey@example.com' },
+    { name: 'Sandhya Kulkarni', email: 'sandhya.kulkarni@example.com' },
+    { name: 'Tushar Gore', email: 'tushar.gore@example.com' },
+    { name: 'Preeti Nambiar', email: 'preeti.nambiar@example.com' },
+    { name: 'Vivek Mathur', email: 'vivek.mathur@example.com' },
+    { name: 'Charu Bajaj', email: 'charu.bajaj@example.com' },
+    { name: 'Harish Venkat', email: 'harish.venkat@example.com' }
   ];
+
+
 
   const insertCustomer = db.prepare(`
     INSERT INTO customers (id, user_id, name, email, lifetime_value, successful_payments, failed_payments, last_payment_at)
@@ -121,16 +143,19 @@ export function seedDemoAccount() {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?)
   `);
 
-  // Spread payments across 6 recent months with varied counts per month
+  // Spread payments across 8 recent months with realistic monthly volumes
   const now = new Date();
   const MONTH_OFFSETS = [
-    { offsetMonths: 5, startDaysAgo: 150, count: 12 },
-    { offsetMonths: 4, startDaysAgo: 120, count: 15 },
-    { offsetMonths: 3, startDaysAgo: 90, count: 18 },
-    { offsetMonths: 2, startDaysAgo: 60, count: 22 },
-    { offsetMonths: 1, startDaysAgo: 30, count: 25 },
-    { offsetMonths: 0, startDaysAgo: 5, count: 18 }
+    { offsetMonths: 7, startDaysAgo: 225, count: 35 },
+    { offsetMonths: 6, startDaysAgo: 195, count: 42 },
+    { offsetMonths: 5, startDaysAgo: 165, count: 50 },
+    { offsetMonths: 4, startDaysAgo: 135, count: 55 },
+    { offsetMonths: 3, startDaysAgo: 105, count: 60 },
+    { offsetMonths: 2, startDaysAgo: 75,  count: 65 },
+    { offsetMonths: 1, startDaysAgo: 40,  count: 70 },
+    { offsetMonths: 0, startDaysAgo: 8,   count: 43 }
   ];
+
 
   let paymentCount = 0;
   let caseCount = 0;
@@ -259,7 +284,7 @@ export function seedDemoAccount() {
 
   console.log(`[SeedDemo] Successfully populated Demo Account (${DEMO_EMAIL}):`);
   console.log(`  - ${CUSTOMERS_DATA.length} Customers`);
-  console.log(`  - ${paymentCount} Payments across 5 months`);
+  console.log(`  - ${paymentCount} Payments across 8 months`);
   console.log(`  - ${caseCount} Recovery Cases`);
   console.log(`  - ${outcomeCount} Recovery Outcomes`);
   console.log(`  - ${actionCount} Agent Activity Actions`);
