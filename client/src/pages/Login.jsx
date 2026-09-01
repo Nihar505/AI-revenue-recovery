@@ -92,26 +92,28 @@ export function Login() {
         </div>
 
         <div className="w-full max-w-sm">
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-white">
+          <div className="mb-7">
+            <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
               {mode === 'login' ? 'Welcome back' : 'Create your account'}
             </h2>
-            <p className="mt-1.5 text-sm text-neutral-400">
+            <p className="mt-1.5 text-xs text-neutral-400">
               {mode === 'login'
-                ? 'Sign in to your RecoverAI dashboard.'
+                ? 'Sign in to access your RecoverAI dashboard.'
                 : 'Start recovering lost revenue in minutes.'}
             </p>
           </div>
 
           {/* Mode toggle */}
-          <div className="mb-6 flex rounded-xl border border-neutral-800 bg-neutral-900 p-1">
+          <div className="mb-5 flex rounded-xl border border-neutral-800 bg-neutral-950 p-1">
             {['login', 'signup'].map(m => (
               <button
                 key={m}
                 type="button"
                 onClick={() => { setMode(m); setError(''); }}
-                className={`flex-1 rounded-lg py-2 text-xs font-semibold transition ${
-                  mode === m ? 'bg-white text-black' : 'text-neutral-400 hover:text-white'
+                className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition duration-150 ${
+                  mode === m
+                    ? 'bg-neutral-900 text-white shadow-sm border border-neutral-800'
+                    : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 {m === 'login' ? 'Sign in' : 'Create account'}
@@ -124,7 +126,7 @@ export function Login() {
             type="button"
             onClick={handleGoogleLogin}
             disabled={googleLoading || loading}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-neutral-700 bg-neutral-900/80 px-4 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 hover:border-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-neutral-800 bg-neutral-900/60 px-4 py-2.5 text-xs font-semibold text-neutral-200 transition hover:bg-neutral-800 hover:border-neutral-700 hover:text-white active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400"
           >
             {googleLoading ? (
               <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
@@ -152,19 +154,19 @@ export function Login() {
           </button>
 
           {/* Divider */}
-          <div className="relative my-6 flex items-center justify-center">
+          <div className="relative my-5 flex items-center justify-center">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-neutral-800" />
             </div>
-            <div className="relative bg-black px-3 text-[11px] font-medium uppercase tracking-wider text-neutral-500">
+            <div className="relative bg-black px-3 text-[10px] font-semibold uppercase tracking-wider text-neutral-500">
               or continue with email
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3.5">
             {mode === 'signup' && (
               <label className="block space-y-1.5">
-                <span className="text-xs font-medium text-neutral-400">Full Name</span>
+                <span className="text-xs font-medium text-neutral-300">Full Name</span>
                 <input
                   type="text"
                   value={name}
@@ -172,13 +174,13 @@ export function Login() {
                   placeholder="Nihar Mehta"
                   required
                   autoComplete="name"
-                  className="w-full rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-white placeholder-neutral-600 outline-none transition focus:border-neutral-600 focus:ring-0"
+                  className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 outline-none transition focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500"
                 />
               </label>
             )}
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-neutral-400">Email</span>
+              <span className="text-xs font-medium text-neutral-300">Email</span>
               <input
                 type="email"
                 value={email}
@@ -186,12 +188,12 @@ export function Login() {
                 placeholder="you@company.com"
                 required
                 autoComplete="email"
-                className="w-full rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-white placeholder-neutral-600 outline-none transition focus:border-neutral-600"
+                className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 outline-none transition focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500"
               />
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-neutral-400">Password</span>
+              <span className="text-xs font-medium text-neutral-300">Password</span>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -200,39 +202,39 @@ export function Login() {
                   placeholder={mode === 'signup' ? 'At least 8 characters' : '••••••••'}
                   required
                   autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                  className="w-full rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-3 pr-11 text-sm text-white placeholder-neutral-600 outline-none transition focus:border-neutral-600"
+                  className="w-full rounded-xl border border-neutral-800 bg-neutral-950 px-3.5 py-2.5 pr-10 text-xs text-white placeholder-neutral-500 outline-none transition focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                 </button>
               </div>
             </label>
 
             {error && (
-              <div className="rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-3">
-                <p className="text-xs text-white">{error}</p>
+              <div className="rounded-xl border border-red-900/50 bg-red-950/30 px-3.5 py-2.5">
+                <p className="text-xs text-red-300">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-sm font-bold text-black transition hover:bg-neutral-200 disabled:cursor-wait disabled:bg-neutral-800 disabled:text-neutral-500"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-2.5 text-xs font-bold text-black transition hover:bg-neutral-200 active:scale-[0.99] disabled:cursor-wait disabled:bg-neutral-800 disabled:text-neutral-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400"
             >
               {loading ? (
                 <><Loader2 className="h-4 w-4 animate-spin" /> {mode === 'login' ? 'Signing in...' : 'Creating account...'}</>
               ) : (
-                <>{mode === 'login' ? 'Sign in' : 'Create account'} <ArrowRight className="h-4 w-4" /></>
+                <>{mode === 'login' ? 'Sign in' : 'Create account'} <ArrowRight className="h-3.5 w-3.5" /></>
               )}
             </button>
           </form>
 
           {mode === 'login' && (
-            <p className="mt-6 text-center text-xs text-neutral-500">
+            <p className="mt-5 text-center text-xs text-neutral-500">
               Default credentials:{' '}
               <button
                 type="button"

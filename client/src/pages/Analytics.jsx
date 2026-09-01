@@ -26,11 +26,12 @@ export function Analytics({ stats }) {
   const trendData = stats?.charts?.trend || [];
 
   return (
-    <div className="mx-auto max-w-[1540px] space-y-8 pb-10">
+    <div className="mx-auto max-w-[1540px] space-y-6 pb-10">
       {/* Header */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">Reports</p>
-        <h1 className="mt-1 text-lg font-semibold text-white">Your Performance</h1>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">Analytics & Reporting</p>
+        <h1 className="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-white">Your Performance</h1>
+        <p className="mt-1 text-xs text-neutral-400">Comprehensive trends, action distributions, and root cause revenue impact.</p>
       </div>
 
       {/* Top metrics */}
@@ -43,9 +44,9 @@ export function Analytics({ stats }) {
       {/* Charts */}
       <div className="grid gap-6 xl:grid-cols-2">
         {/* Trend */}
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-5">
-          <p className="text-sm font-semibold text-white">Recovery trend</p>
-          <p className="mt-0.5 text-xs text-neutral-500">Recovered revenue over time</p>
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-6 shadow-sm">
+          <p className="text-sm font-bold text-white">Recovery trend</p>
+          <p className="mt-0.5 text-xs text-neutral-400">Recovered revenue over time</p>
           <div className="mt-5 h-56">
             {trendData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -57,8 +58,8 @@ export function Analytics({ stats }) {
                     </linearGradient>
                   </defs>
                   <CartesianGrid stroke="#333333" strokeDasharray="3 4" vertical={false} />
-                  <XAxis dataKey="date" stroke="#666666" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#666666" fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => `₹${Math.round(v / 1000)}k`} />
+                  <XAxis dataKey="date" stroke="#666666" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#666666" fontSize={10} tickLine={false} axisLine={false} tickFormatter={v => `₹${Math.round(v / 1000)}k`} />
                   <Tooltip
                     contentStyle={{ background: '#000000', border: '1px solid #333333', borderRadius: 8, color: '#fff' }}
                     wrapperStyle={{ zIndex: 50 }}
@@ -70,24 +71,24 @@ export function Analytics({ stats }) {
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full flex-col items-center justify-center text-center">
-                <p className="text-sm text-neutral-400">No recovery trend data available</p>
-                <p className="mt-1 text-xs text-neutral-600">Recovery performance timeline will appear here</p>
+                <p className="text-xs text-neutral-400">No recovery trend data available</p>
+                <p className="mt-1 text-[11px] text-neutral-500">Recovery performance timeline will appear here</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Action distribution */}
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-5">
-          <p className="text-sm font-semibold text-white">Action distribution</p>
-          <p className="mt-0.5 text-xs text-neutral-500">Cases processed by recovery action type</p>
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-6 shadow-sm">
+          <p className="text-sm font-bold text-white">Action distribution</p>
+          <p className="mt-0.5 text-xs text-neutral-400">Cases processed by recovery action type</p>
           <div className="mt-5 h-56">
             {actionData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={actionData} margin={{ left: -12, right: 4, top: 4 }}>
                   <CartesianGrid stroke="#333333" strokeDasharray="3 4" vertical={false} />
                   <XAxis dataKey="name" stroke="#666666" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#666666" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#666666" fontSize={10} tickLine={false} axisLine={false} />
                   <Tooltip
                     contentStyle={{ background: '#000000', border: '1px solid #333333', borderRadius: 8, color: '#fff' }}
                     wrapperStyle={{ zIndex: 50 }}
@@ -101,23 +102,23 @@ export function Analytics({ stats }) {
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full flex-col items-center justify-center text-center">
-                <p className="text-sm text-neutral-400">No actions executed yet</p>
-                <p className="mt-1 text-xs text-neutral-600">Action distribution will show as cases are processed</p>
+                <p className="text-xs text-neutral-400">No actions executed yet</p>
+                <p className="mt-1 text-[11px] text-neutral-500">Action distribution will show as cases are processed</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Failure breakdown */}
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-5 xl:col-span-2">
-          <p className="text-sm font-semibold text-white">Revenue at risk by failure type</p>
-          <p className="mt-0.5 text-xs text-neutral-500">Horizontal breakdown of recoverable revenue per root cause</p>
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-6 xl:col-span-2 shadow-sm">
+          <p className="text-sm font-bold text-white">Revenue at risk by failure type</p>
+          <p className="mt-0.5 text-xs text-neutral-400">Horizontal breakdown of recoverable revenue per root cause</p>
           <div className="mt-5 h-56">
             {failureData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={failureData} layout="vertical" margin={{ left: 10, right: 4 }}>
                   <CartesianGrid stroke="#333333" strokeDasharray="3 4" horizontal={false} />
-                  <XAxis type="number" stroke="#666666" fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => `₹${Math.round(v / 1000)}k`} />
+                  <XAxis type="number" stroke="#666666" fontSize={10} tickLine={false} axisLine={false} tickFormatter={v => `₹${Math.round(v / 1000)}k`} />
                   <YAxis dataKey="name" type="category" width={140} stroke="#999999" fontSize={10} tickLine={false} axisLine={false} />
                   <Tooltip
                     contentStyle={{ background: '#000000', border: '1px solid #333333', borderRadius: 8, color: '#fff' }}
@@ -137,8 +138,8 @@ export function Analytics({ stats }) {
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full flex-col items-center justify-center text-center">
-                <p className="text-sm text-neutral-400">No failure data available</p>
-                <p className="mt-1 text-xs text-neutral-600">Breakdown of revenue at risk will appear here</p>
+                <p className="text-xs text-neutral-400">No failure data available</p>
+                <p className="mt-1 text-[11px] text-neutral-500">Breakdown of root causes will appear here</p>
               </div>
             )}
           </div>

@@ -80,77 +80,104 @@ export function PolicyCenter() {
     <div className="mx-auto max-w-[1540px] space-y-6 pb-10">
       {/* Header */}
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">Settings</p>
-        <h1 className="mt-1 text-lg font-semibold text-white">Your Rules</h1>
-        <p className="mt-1 text-sm text-neutral-400">Tell us how you want to handle failed payments.</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">Merchant Policies</p>
+        <h1 className="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-white">Your Rules</h1>
+        <p className="mt-1 text-xs text-neutral-400">Configure safety thresholds, auto-retry limits, and approval boundaries for autonomous AI operations.</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         {/* Policy form */}
-        <form onSubmit={handleSave} className="rounded-xl border border-neutral-800 bg-neutral-900 p-6 space-y-6">
-          <p className="text-sm font-semibold text-white">Limits</p>
+        <form onSubmit={handleSave} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-6 sm:p-7 space-y-6 shadow-sm">
+          <div>
+            <h2 className="text-sm font-bold text-white">Safety Limits & Thresholds</h2>
+            <p className="mt-0.5 text-xs text-neutral-400">Strict boundaries enforced before any recovery action executes.</p>
+          </div>
 
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-neutral-400">Maximum amount to automatically retry (₹)</span>
-              <input type="number" value={policy.max_auto_retry_amount}
+              <span className="text-xs font-semibold text-neutral-300">Maximum amount to auto-retry (₹)</span>
+              <input
+                type="number"
+                value={policy.max_auto_retry_amount}
                 onChange={e => setPolicy({ ...policy, max_auto_retry_amount: Number(e.target.value) })}
-                className="w-full rounded-lg border border-neutral-700 bg-black px-3 py-2 text-sm text-white focus:border-neutral-500 focus:outline-none transition" />
-              <p className="text-[11px] text-neutral-600">Retries above this are blocked.</p>
+                className="w-full rounded-xl border border-neutral-800 bg-black px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500 transition"
+              />
+              <p className="text-[11px] text-neutral-500">Retries above this amount require alternative methods.</p>
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-neutral-400">Maximum number of retries</span>
-              <input type="number" value={policy.max_retry_count}
+              <span className="text-xs font-semibold text-neutral-300">Maximum retry attempts</span>
+              <input
+                type="number"
+                value={policy.max_retry_count}
                 onChange={e => setPolicy({ ...policy, max_retry_count: Number(e.target.value) })}
-                className="w-full rounded-lg border border-neutral-700 bg-black px-3 py-2 text-sm text-white focus:border-neutral-500 focus:outline-none transition" />
-              <p className="text-[11px] text-neutral-600">Prevents card spam and decline penalties.</p>
+                className="w-full rounded-xl border border-neutral-800 bg-black px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500 transition"
+              />
+              <p className="text-[11px] text-neutral-500">Prevents repeated card decline penalties.</p>
             </label>
 
             <label className="block space-y-1.5 sm:col-span-2">
-              <span className="text-xs font-medium text-neutral-400">Ask for my approval if the amount is above (₹)</span>
-              <input type="number" value={policy.require_approval_above}
+              <span className="text-xs font-semibold text-neutral-300">Require human approval if amount exceeds (₹)</span>
+              <input
+                type="number"
+                value={policy.require_approval_above}
                 onChange={e => setPolicy({ ...policy, require_approval_above: Number(e.target.value) })}
-                className="w-full rounded-lg border border-neutral-700 bg-black px-3 py-2 text-sm text-white focus:border-neutral-500 focus:outline-none transition" />
-              <p className="text-[11px] text-neutral-600">Any amount above this is escalated to your team.</p>
+                className="w-full rounded-xl border border-neutral-800 bg-black px-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500 transition"
+              />
+              <p className="text-[11px] text-neutral-500">High-value payments are escalated for merchant team review.</p>
             </label>
           </div>
 
           {/* Allowed actions */}
-          <div className="space-y-3 border-t border-neutral-800 pt-6">
-            <p className="text-xs font-medium text-neutral-400">What can the system do automatically?</p>
-            {ALL_ACTIONS.map(action => {
-              const enabled = (policy.allowed_actions || []).includes(action.id);
-              return (
-                <label key={action.id}
-                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition ${
-                    enabled ? 'border-neutral-600 bg-neutral-800' : 'border-neutral-800 bg-black opacity-60'
-                  }`}
-                >
-                  <input type="checkbox" checked={enabled} onChange={() => toggleAction(action.id)}
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-neutral-600 bg-black text-white accent-white focus:ring-0" />
-                  <div>
-                    <p className="text-xs font-semibold text-white">{action.label}</p>
-                    <p className="mt-0.5 text-xs text-neutral-400">{action.desc}</p>
-                  </div>
-                </label>
-              );
-            })}
+          <div className="space-y-3.5 border-t border-neutral-800/80 pt-6">
+            <div>
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider">Permitted Recovery Strategies</h3>
+              <p className="mt-0.5 text-xs text-neutral-400">Select which automated playbooks the AI agent pipeline is authorized to deploy.</p>
+            </div>
+            <div className="space-y-2.5">
+              {ALL_ACTIONS.map(action => {
+                const enabled = (policy.allowed_actions || []).includes(action.id);
+                return (
+                  <label
+                    key={action.id}
+                    className={`flex cursor-pointer items-start gap-3.5 rounded-xl border p-4 transition-all duration-150 ${
+                      enabled
+                        ? 'border-neutral-700 bg-neutral-900/90 shadow-sm'
+                        : 'border-neutral-850 bg-black/50 opacity-60 hover:opacity-80'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={enabled}
+                      onChange={() => toggleAction(action.id)}
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-neutral-700 bg-black text-white accent-white focus:ring-0 cursor-pointer"
+                    />
+                    <div>
+                      <p className="text-xs font-bold text-white">{action.label}</p>
+                      <p className="mt-0.5 text-xs text-neutral-400 leading-relaxed">{action.desc}</p>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
           </div>
 
           {/* Save */}
-          <div className="flex items-center justify-between border-t border-neutral-800 pt-5">
+          <div className="flex items-center justify-between border-t border-neutral-800/80 pt-5">
             {saved ? (
-              <span className="flex items-center gap-1.5 text-xs text-white font-medium">
-                <CheckCircle2 className="h-4 w-4" /> Saved
+              <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+                <CheckCircle2 className="h-4 w-4" /> Changes saved successfully
               </span>
             ) : error ? (
-              <span className="flex items-center gap-1.5 text-xs text-red-500 font-medium">
+              <span className="flex items-center gap-1.5 text-xs text-red-400 font-medium">
                 <ShieldAlert className="h-4 w-4" /> {error}
               </span>
             ) : <div />}
-            <button type="submit" disabled={saving}
-              className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-xs font-semibold text-black transition hover:bg-neutral-200 disabled:opacity-50">
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-black transition hover:bg-neutral-200 active:scale-95 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400"
+            >
               <Save className="h-3.5 w-3.5" />
               {saving ? 'Saving…' : 'Save changes'}
             </button>
@@ -158,29 +185,40 @@ export function PolicyCenter() {
         </form>
 
         {/* Simulator */}
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-6 space-y-5 self-start">
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-950 p-6 space-y-5 self-start shadow-sm">
           <div>
-            <p className="text-sm font-semibold text-white">Test your rules</p>
-            <p className="mt-1 text-xs text-neutral-500">Test any combination against your active rules.</p>
+            <h2 className="text-sm font-bold text-white">Rule Evaluation Simulator</h2>
+            <p className="mt-0.5 text-xs text-neutral-400">Test any scenario against your configured policies in real-time.</p>
           </div>
 
           <div className="space-y-4">
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-neutral-400">Transaction amount (₹)</span>
-              <input type="number" value={simAmount} onChange={e => setSimAmount(Number(e.target.value))}
-                className="w-full rounded-lg border border-neutral-700 bg-black px-3 py-2 text-sm text-white focus:border-neutral-500 focus:outline-none transition" />
+              <span className="text-xs font-semibold text-neutral-300">Transaction amount (₹)</span>
+              <input
+                type="number"
+                value={simAmount}
+                onChange={e => setSimAmount(Number(e.target.value))}
+                className="w-full rounded-xl border border-neutral-800 bg-black px-3.5 py-2.5 text-xs text-white focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500 transition"
+              />
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-neutral-400">Previous retries</span>
-              <input type="number" value={simRetries} onChange={e => setSimRetries(Number(e.target.value))}
-                className="w-full rounded-lg border border-neutral-700 bg-black px-3 py-2 text-sm text-white focus:border-neutral-500 focus:outline-none transition" />
+              <span className="text-xs font-semibold text-neutral-300">Previous retry count</span>
+              <input
+                type="number"
+                value={simRetries}
+                onChange={e => setSimRetries(Number(e.target.value))}
+                className="w-full rounded-xl border border-neutral-800 bg-black px-3.5 py-2.5 text-xs text-white focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500 transition"
+              />
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-neutral-400">Proposed action</span>
-              <select value={simAction} onChange={e => setSimAction(e.target.value)}
-                className="w-full rounded-lg border border-neutral-700 bg-black px-3 py-2 text-sm text-white focus:border-neutral-500 focus:outline-none transition">
+              <span className="text-xs font-semibold text-neutral-300">Proposed recovery action</span>
+              <select
+                value={simAction}
+                onChange={e => setSimAction(e.target.value)}
+                className="w-full rounded-xl border border-neutral-800 bg-black px-3.5 py-2.5 text-xs text-white focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500 transition"
+              >
                 <option value="RETRY_PAYMENT">Retry payment</option>
                 <option value="SEND_REMINDER">Send reminder</option>
                 <option value="OFFER_ALTERNATIVE_METHOD">Offer alternative</option>
@@ -190,16 +228,18 @@ export function PolicyCenter() {
           </div>
 
           {/* Verdict */}
-          <div className={`rounded-lg border p-4 ${verdict.ok ? 'border-neutral-700 bg-black' : 'border-neutral-500 bg-neutral-800 text-white'}`}>
+          <div className={`rounded-xl border p-4 transition ${verdict.ok ? 'border-neutral-800 bg-neutral-900/60' : 'border-red-900/50 bg-red-950/20'}`}>
             <div className="flex items-center gap-2">
-              {verdict.ok
-                ? <ShieldCheck className="h-4 w-4 text-white" />
-                : <ShieldAlert className="h-4 w-4 text-white" />}
-              <span className={`text-xs font-semibold text-white`}>
-                {verdict.ok ? 'APPROVED' : 'BLOCKED'}
+              {verdict.ok ? (
+                <ShieldCheck className="h-4 w-4 text-emerald-400" />
+              ) : (
+                <ShieldAlert className="h-4 w-4 text-red-400" />
+              )}
+              <span className={`text-xs font-bold ${verdict.ok ? 'text-emerald-400' : 'text-red-300'}`}>
+                {verdict.ok ? 'ALLOWED BY POLICY' : 'BLOCKED / ESCALATED'}
               </span>
             </div>
-            <p className="mt-2 text-xs leading-5 text-neutral-400">{verdict.msg}</p>
+            <p className="mt-2 text-xs leading-relaxed text-neutral-300">{verdict.msg}</p>
           </div>
         </div>
       </div>

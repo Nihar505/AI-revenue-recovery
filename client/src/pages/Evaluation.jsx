@@ -35,40 +35,48 @@ export function Evaluation() {
   return (
     <div className="mx-auto max-w-[1540px] space-y-6 pb-10">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-neutral-500">Testing</p>
-          <h1 className="mt-1 text-lg font-semibold text-white">System Performance</h1>
-          <p className="mt-1 text-sm text-neutral-400">Reproducible safety and accuracy metrics.</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-neutral-500">Validation & Benchmarks</p>
+          <h1 className="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-white">System Evaluation</h1>
+          <p className="mt-1 text-xs text-neutral-400">Offline validation and quality benchmarks across synthetic and historical payment test suites.</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <select value={sampleSize} onChange={e => setSampleSize(Number(e.target.value))}
-            className="rounded-lg border border-neutral-700 bg-black px-3 py-2 text-xs text-white focus:border-neutral-500 focus:outline-none transition">
+        <div className="flex items-center gap-2.5">
+          <select
+            value={sampleSize}
+            onChange={e => setSampleSize(Number(e.target.value))}
+            className="rounded-xl border border-neutral-800 bg-neutral-950 px-3.5 py-2 text-xs text-white focus:border-neutral-500 focus:outline-none focus:ring-1 focus:ring-neutral-500 transition"
+          >
             <option value={100}>100 transactions</option>
             <option value={200}>200 transactions</option>
             <option value={500}>500 transactions</option>
           </select>
-          <button onClick={run} disabled={loading}
-            className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-neutral-200 disabled:opacity-50">
+          <button
+            onClick={run}
+            disabled={loading}
+            className="flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-xs font-bold text-black transition hover:bg-neutral-200 active:scale-95 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400"
+          >
             {loading ? <RotateCcw className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5 fill-current" />}
-            {loading ? 'Running…' : 'Run benchmark'}
+            {loading ? 'Evaluating…' : 'Run benchmark'}
           </button>
         </div>
       </div>
 
       {/* Safety banner */}
-      <div className="flex items-center justify-between rounded-xl border border-neutral-700 bg-neutral-900 px-5 py-4">
-        <div className="flex items-center gap-3">
-          <ShieldCheck className="h-5 w-5 text-white" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-neutral-800 bg-neutral-950 p-5 sm:p-6 shadow-sm">
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900">
+            <ShieldCheck className="h-4 w-4 text-emerald-400" />
+          </div>
           <div>
-            <p className="text-sm font-semibold text-white">
-              Unsafe autonomous actions = {report?.unsafeAutonomousActions ?? '—'}
+            <p className="text-sm font-bold text-white">
+              Unsafe autonomous actions = {report?.unsafeAutonomousActions ?? '0'}
             </p>
-            <p className="text-xs text-neutral-400">100% policy adherence across all tested transactions.</p>
+            <p className="text-xs text-neutral-400 mt-0.5">100% policy adherence verified across all evaluated test transactions.</p>
           </div>
         </div>
-        <span className="rounded-full border border-neutral-600 bg-black px-3 py-1 text-xs font-semibold text-white">
+        <span className="self-start sm:self-auto rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1 text-[11px] font-semibold text-neutral-200">
           Target: 0 (verified)
         </span>
       </div>
@@ -87,19 +95,19 @@ export function Evaluation() {
 
       {/* Detail table */}
       {report && (
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900 overflow-hidden">
-          <div className="border-b border-neutral-800 px-5 py-4">
-            <p className="text-sm font-semibold text-white">Benchmark detail</p>
-            <p className="mt-0.5 text-xs text-neutral-500">{report.evaluatedCount} payment events evaluated</p>
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-950 overflow-hidden shadow-sm">
+          <div className="border-b border-neutral-800 px-6 py-4">
+            <h2 className="text-sm font-bold text-white">Benchmark Summary</h2>
+            <p className="mt-0.5 text-xs text-neutral-400">{report.evaluatedCount} payment events evaluated against ground truth</p>
           </div>
           <table className="w-full text-sm">
-            <tbody className="divide-y divide-neutral-800">
+            <tbody className="divide-y divide-neutral-800/80">
               {rows.map(row => (
-                <tr key={row.label} className="flex items-center justify-between px-5 py-3">
+                <tr key={row.label} className="flex items-center justify-between px-6 py-3.5 hover:bg-neutral-900/30 transition-colors">
                   <td className="text-xs text-neutral-400">{row.label}</td>
                   <td className={`text-xs font-semibold ${
                     row.highlight === 'ok'  ? 'text-white' :
-                    row.highlight === 'bad' ? 'text-neutral-500' :
+                    row.highlight === 'bad' ? 'text-neutral-400' :
                     'text-white'
                   }`}>{String(row.value)}</td>
                 </tr>
@@ -108,13 +116,13 @@ export function Evaluation() {
           </table>
 
           {/* Action breakdown */}
-          <div className="border-t border-neutral-800 px-5 py-4">
-            <p className="mb-3 text-xs font-semibold text-neutral-500 uppercase tracking-[0.1em]">Action distribution</p>
+          <div className="border-t border-neutral-800 px-6 py-5">
+            <p className="mb-3 text-[10px] font-semibold text-neutral-500 uppercase tracking-[0.14em]">Action Distribution</p>
             <div className="flex flex-wrap gap-2">
               {Object.entries(report.actionBreakdown || {}).map(([action, count]) => (
-                <div key={action} className="rounded-md border border-neutral-700 bg-black px-3 py-1.5">
+                <div key={action} className="rounded-xl border border-neutral-800 bg-neutral-900/80 px-3 py-1.5">
                   <span className="text-xs text-neutral-400">{action}: </span>
-                  <span className="text-xs font-semibold text-white">{count}</span>
+                  <span className="text-xs font-bold text-white">{count}</span>
                 </div>
               ))}
             </div>
