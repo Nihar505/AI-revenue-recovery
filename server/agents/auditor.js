@@ -3,7 +3,19 @@ import { getDb } from '../db/schema.js';
 
 /**
  * AGENT 5 — AUDITOR
- * Immutably logs all agent steps, policy validations, and execution outcomes to create an audit trail.
+ * ---
+ * Immutably logs all agent steps, policy validations, and execution outcomes.
+ *
+ * KEY CHANGE: Now handles two distinct execution paths:
+ *
+ * 1. SIMULATION mode: outcome is determined by the provider and recorded immediately
+ *    (may be 'recovered', 'refrained', 'escalated', 'failed')
+ *
+ * 2. RAZORPAY TEST mode: outcome = 'awaiting_payment' when a payment link was created.
+ *    The payment is NOT marked captured here. That happens in the webhook handler
+ *    when Razorpay independently confirms the payment.
+ *
+ * This makes EXECUTED ≠ RECOVERED explicit in the data model.
  */
 export async function runAuditor({
   caseId,
@@ -12,28 +24,32 @@ export async function runAuditor({
   analystResult,
   strategistResult,
   policyEvaluation,
-  executionResult
+  executionResult,
 }) {
-  const db = getDb();
+  const db        = getDb();
   const timestamp = new Date().toISOString();
 
-  const finalOutcome =
-    executionResult.recoveredAmount > 0
-      ? 'recovered'
-      : executionResult.actionExecuted === 'DO_NOTHING'
-      ? 'refrained'
-      : executionResult.actionExecuted === 'ESCALATE'
-      ? 'escalated'
-      : 'failed';
+  const mode          = executionResult.mode          || 'simulation';
+  const outcomeSource = executionResult.outcome_source || 'simulation';
+  const isAwaiting    = executionResult.status === 'AWAITING_PAYMENT';
+
+  // Determine final outcome
+  const finalOutcome = (() => {
+    if (isAwaiting)                              return 'awaiting_payment';
+    if (executionResult.recoveredAmount > 0)     return 'recovered';
+    if (executionResult.actionExecuted === 'DO_NOTHING') return 'refrained';
+    if (executionResult.status === 'ESCALATED')  return 'escalated';
+    if (executionResult.status === 'FAILED')     return 'failed';
+    return 'failed';
+  })();
 
   const saveAuditTransaction = db.transaction(() => {
     // 1. Log Detective Step
-    const detectiveActionId = `act_${uuidv4().substring(0, 10)}`;
     db.prepare(`
       INSERT INTO agent_actions (id, case_id, agent, action, reason, confidence, input_data, policy_result, status, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      detectiveActionId,
+      `act_${uuidv4().substring(0, 10)}`,
       caseId,
       'Revenue Detective',
       'OPPORTUNITY_ANALYSIS',
@@ -42,16 +58,15 @@ export async function runAuditor({
       JSON.stringify({ paymentId: payment.id, amount: payment.amount, ltv: payment.lifetime_value }),
       'PASSED',
       'completed',
-      timestamp
+      timestamp,
     );
 
     // 2. Log Analyst Step
-    const analystActionId = `act_${uuidv4().substring(0, 10)}`;
     db.prepare(`
       INSERT INTO agent_actions (id, case_id, agent, action, reason, confidence, input_data, policy_result, status, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      analystActionId,
+      `act_${uuidv4().substring(0, 10)}`,
       caseId,
       'Root Cause Analyst',
       analystResult.rootCause,
@@ -60,16 +75,15 @@ export async function runAuditor({
       JSON.stringify({ failureReason: payment.failure_reason }),
       'PASSED',
       'completed',
-      timestamp
+      timestamp,
     );
 
     // 3. Log Strategist Step
-    const strategistActionId = `act_${uuidv4().substring(0, 10)}`;
     db.prepare(`
       INSERT INTO agent_actions (id, case_id, agent, action, reason, confidence, input_data, policy_result, status, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      strategistActionId,
+      `act_${uuidv4().substring(0, 10)}`,
       caseId,
       'Recovery Strategist',
       strategistResult.recommendedAction,
@@ -78,16 +92,15 @@ export async function runAuditor({
       JSON.stringify({ recommended: strategistResult.recommendedAction }),
       policyEvaluation.policyResult,
       policyEvaluation.allowed ? 'approved' : 'blocked_by_policy',
-      timestamp
+      timestamp,
     );
 
-    // 4. Log Policy Engine Check Step
-    const policyActionId = `act_${uuidv4().substring(0, 10)}`;
+    // 4. Log Policy Engine Step
     db.prepare(`
       INSERT INTO agent_actions (id, case_id, agent, action, reason, confidence, input_data, policy_result, status, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      policyActionId,
+      `act_${uuidv4().substring(0, 10)}`,
       caseId,
       'Policy / Safety Engine',
       policyEvaluation.finalAction,
@@ -96,42 +109,53 @@ export async function runAuditor({
       JSON.stringify({ proposedAction: strategistResult.recommendedAction }),
       policyEvaluation.policyResult,
       'verified',
-      timestamp
+      timestamp,
     );
 
-    // 5. Log Executor Step
-    const executorActionId = `act_${uuidv4().substring(0, 10)}`;
+    // 5. Log Executor Step — include mode and payment link details if available
+    const executorInputData = {
+      ...(executionResult.toolResult || {}),
+      mode,
+      outcome_source: outcomeSource,
+      ...(executionResult.providerPaymentLinkId
+        ? {
+            razorpay_payment_link_id:  executionResult.providerPaymentLinkId,
+            razorpay_payment_link_url: executionResult.providerPaymentLinkUrl,
+          }
+        : {}),
+    };
     db.prepare(`
       INSERT INTO agent_actions (id, case_id, agent, action, reason, confidence, input_data, policy_result, status, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      executorActionId,
+      `act_${uuidv4().substring(0, 10)}`,
       caseId,
       'Execution Agent',
       executionResult.actionExecuted,
       executionResult.details,
       1.0,
-      JSON.stringify(executionResult.toolResult || {}),
+      JSON.stringify(executorInputData),
       'EXECUTED',
       executionResult.status,
-      timestamp
+      timestamp,
     );
 
     // 6. Record Final Recovery Outcome
-    const outcomeId = `out_${uuidv4().substring(0, 10)}`;
     db.prepare(`
-      INSERT OR REPLACE INTO recovery_outcomes (id, case_id, action, recovered_amount, outcome, timestamp)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO recovery_outcomes (id, case_id, action, recovered_amount, outcome, outcome_source, provider_payment_link_id, timestamp)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      outcomeId,
+      `out_${uuidv4().substring(0, 10)}`,
       caseId,
       executionResult.actionExecuted,
       executionResult.recoveredAmount || 0,
       finalOutcome,
-      timestamp
+      outcomeSource,
+      executionResult.providerPaymentLinkId || null,
+      timestamp,
     );
 
-    // 7. Update recovery_cases master record
+    // 7. Update recovery_cases master record — include provider and link ID
     db.prepare(`
       UPDATE recovery_cases
       SET recovery_score = ?,
@@ -139,7 +163,9 @@ export async function runAuditor({
           root_cause = ?,
           recommended_action = ?,
           confidence = ?,
-          status = ?
+          status = ?,
+          provider = ?,
+          provider_payment_link_id = ?
       WHERE id = ?
     `).run(
       detectiveResult.recoveryScore,
@@ -148,19 +174,17 @@ export async function runAuditor({
       executionResult.actionExecuted,
       strategistResult.confidence,
       finalOutcome,
-      caseId
+      mode,
+      executionResult.providerPaymentLinkId || null,
+      caseId,
     );
 
-    // 8. Synchronize payment and customer status if recovery succeeded
-    if (finalOutcome === 'recovered' && executionResult.recoveredAmount > 0) {
-      // Check current payment status to avoid duplicate LTV increment if already captured
+    // 8. Synchronize payment/customer only for SIMULATION-confirmed recoveries.
+    //    In Razorpay mode, payment is captured by the webhook handler, not here.
+    if (finalOutcome === 'recovered' && outcomeSource === 'simulation' && executionResult.recoveredAmount > 0) {
       const currentPayment = db.prepare('SELECT status, customer_id FROM payments WHERE id = ?').get(payment.id);
       if (currentPayment && currentPayment.status !== 'captured') {
-        db.prepare(`
-          UPDATE payments
-          SET status = 'captured'
-          WHERE id = ?
-        `).run(payment.id);
+        db.prepare(`UPDATE payments SET status = 'captured' WHERE id = ?`).run(payment.id);
 
         const customerId = currentPayment.customer_id || payment.customer_id;
         if (customerId) {
@@ -181,7 +205,10 @@ export async function runAuditor({
   return {
     caseId,
     finalOutcome,
-    recoveredAmount: executionResult.recoveredAmount,
-    timestamp
+    recoveredAmount:        executionResult.recoveredAmount,
+    mode,
+    providerPaymentLinkId:  executionResult.providerPaymentLinkId || null,
+    providerPaymentLinkUrl: executionResult.providerPaymentLinkUrl || null,
+    timestamp,
   };
 }

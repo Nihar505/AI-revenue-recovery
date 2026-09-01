@@ -208,6 +208,7 @@ function AppContent() {
           onRefresh={() => fetchStats({ quiet: false })}
           lastUpdated={lastUpdated}
           onOpenNavigation={() => setIsNavigationOpen(true)}
+          mode={stats?.mode}
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 xl:p-10 overflow-y-auto">

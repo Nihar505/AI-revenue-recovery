@@ -42,12 +42,12 @@ casesRouter.get('/', (req, res) => {
       SELECT
         rc.id, rc.payment_id, rc.recovery_score, rc.risk_score,
         rc.root_cause, rc.recommended_action, rc.confidence,
-        rc.status, rc.created_at,
+        rc.status, rc.provider, rc.provider_payment_link_id, rc.created_at,
         p.amount, p.currency, p.status as payment_status,
         p.failure_reason, p.payment_method, p.retry_count,
         c.name as customer_name, c.email as customer_email,
         c.lifetime_value, c.successful_payments, c.failed_payments,
-        MAX(ro.recovered_amount) as recovered_amount, ro.outcome
+        MAX(ro.recovered_amount) as recovered_amount, ro.outcome, ro.outcome_source, ro.provider_payment_link_id as outcome_link_id
       FROM recovery_cases rc
       JOIN payments p ON p.id = rc.payment_id
       JOIN customers c ON c.id = p.customer_id

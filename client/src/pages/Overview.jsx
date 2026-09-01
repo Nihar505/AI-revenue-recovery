@@ -94,8 +94,23 @@ export function Overview({ stats, isAgentRunning, onRunAgent, onOpenCaseModal, l
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <MetricCard title="Lost Sales" value={formatCurrency(stats?.revenueAtRisk)} subtext="Total of all failed payments" icon={CircleDollarSign} />
           <MetricCard title="Expected Recovery" value={formatCurrency(Math.round(stats?.expectedRecovery || 0))} subtext="AI projected recoverable amount" icon={TrendingUp} />
-          <MetricCard title="Money Recovered" value={formatCurrency(stats?.recoveredRevenue)} subtext="Total verified recoveries" icon={CheckCircle2} trend={stats?.recoveredRevenue ? 'Live total' : undefined} />
-          <MetricCard title="Success Rate" value={`${stats?.recoveryRate || 0}%`} subtext="Percentage of opportunities recovered" icon={Activity} />
+          <MetricCard
+            title="Money Recovered"
+            value={formatCurrency(stats?.recoveredRevenue)}
+            subtext={
+              stats?.verifiedRazorpay?.count > 0
+                ? `${formatCurrency(stats.verifiedRazorpay.amount)} verified via Razorpay webhook`
+                : "Total verified recoveries"
+            }
+            icon={CheckCircle2}
+            trend={stats?.verifiedRazorpay?.count > 0 ? `${stats.verifiedRazorpay.count} RZP verified` : (stats?.recoveredRevenue ? 'Live total' : undefined)}
+          />
+          <MetricCard
+            title={stats?.awaitingPayment?.count > 0 ? "Awaiting Payment" : "Success Rate"}
+            value={stats?.awaitingPayment?.count > 0 ? `${stats.awaitingPayment.count} link${stats.awaitingPayment.count === 1 ? '' : 's'}` : `${stats?.recoveryRate || 0}%`}
+            subtext={stats?.awaitingPayment?.count > 0 ? `${formatCurrency(stats.awaitingPayment.amount)} pending test checkout` : "Percentage of opportunities recovered"}
+            icon={Activity}
+          />
         </div>
       </section>
 

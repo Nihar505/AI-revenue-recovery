@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { getDb } from '../db/schema.js';
 import { runEvaluation } from '../../evaluation/metrics.js';
+import { getMode } from '../integrations/razorpay/client.js';
 
 export const analyticsRouter = Router();
 
@@ -40,6 +41,33 @@ analyticsRouter.get('/overview', (req, res) => {
       JOIN recovery_cases rc ON rc.id = ro.case_id
       JOIN payments p ON p.id = rc.payment_id
       WHERE p.user_id = ? AND ro.outcome = 'recovered'
+    `).get(userId);
+
+    // Awaiting payment count & amount (cases where payment link is active)
+    const awaitingPayment = db.prepare(`
+      SELECT COUNT(*) as count, COALESCE(SUM(p.amount), 0) as total
+      FROM recovery_outcomes ro
+      JOIN recovery_cases rc ON rc.id = ro.case_id
+      JOIN payments p ON p.id = rc.payment_id
+      WHERE p.user_id = ? AND ro.outcome = 'awaiting_payment'
+    `).get(userId);
+
+    // Razorpay webhook verified recoveries
+    const razorpayVerified = db.prepare(`
+      SELECT COUNT(*) as count, COALESCE(SUM(ro.recovered_amount), 0) as total_amount
+      FROM recovery_outcomes ro
+      JOIN recovery_cases rc ON rc.id = ro.case_id
+      JOIN payments p ON p.id = rc.payment_id
+      WHERE p.user_id = ? AND ro.outcome = 'recovered' AND ro.outcome_source = 'razorpay_webhook'
+    `).get(userId);
+
+    // Simulated Recoveries
+    const simulated = db.prepare(`
+      SELECT COUNT(*) as count, COALESCE(SUM(ro.recovered_amount), 0) as total_amount
+      FROM recovery_outcomes ro
+      JOIN recovery_cases rc ON rc.id = ro.case_id
+      JOIN payments p ON p.id = rc.payment_id
+      WHERE p.user_id = ? AND ro.outcome = 'recovered' AND (ro.outcome_source = 'simulation' OR ro.outcome_source IS NULL)
     `).get(userId);
 
     // Total payments analyzed (all)
@@ -94,6 +122,7 @@ analyticsRouter.get('/overview', (req, res) => {
         : 0;
 
     res.json({
+      mode: getMode(),
       revenueAtRisk: revenueAtRisk.total,
       expectedRecovery: revenueAtRisk.total * 0.42,
       recoveredRevenue: recovered.total,
@@ -101,6 +130,18 @@ analyticsRouter.get('/overview', (req, res) => {
       transactionsAnalyzed: totalPayments.count,
       casesAnalyzed: analyzed.count,
       recoveryOpportunities: opportunities.count,
+      awaitingPayment: {
+        count: awaitingPayment.count,
+        amount: awaitingPayment.total
+      },
+      verifiedRazorpay: {
+        count: razorpayVerified.count,
+        amount: razorpayVerified.total_amount
+      },
+      simulated: {
+        count: simulated.count,
+        amount: simulated.total_amount
+      },
       charts: {
         byAction,
         byFailure,

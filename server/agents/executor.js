@@ -1,104 +1,45 @@
-import { razorpayTools } from '../tools/razorpay.js';
+import { getProvider } from '../providers/index.js';
 
 /**
  * AGENT 4 — EXECUTION AGENT
- * Safely executes policy-vetted actions via strictly controlled tools.
+ * ---
+ * Executes the policy-vetted action via the appropriate payment provider.
+ *
+ * KEY CHANGE: Math.random() has been removed from this agent.
+ * The provider layer determines whether an outcome is simulated or real:
+ *   - DemoProvider (simulation): uses stochastic simulation as before
+ *   - RazorpayProvider (test mode): creates a real payment link, returns
+ *     AWAITING_PAYMENT — the webhook handler produces the verified outcome
+ *
+ * @param {Object} opts
+ * @param {string}  opts.caseId           - recovery case ID (needed by Razorpay provider)
+ * @param {Object}  opts.payment
+ * @param {Object}  opts.customer
+ * @param {string}  opts.recommendedAction
+ * @param {Object}  opts.policyEvaluation
+ * @param {string}  opts.rationale
  */
 export async function runExecutionAgent({
+  caseId,
   payment,
   customer,
   recommendedAction,
   policyEvaluation,
-  rationale
+  rationale,
 }) {
-  const { id: paymentId, amount, payment_method } = payment;
-  const { id: customerId, name: customerName, email: customerEmail } = customer || {};
-
-  // If policy blocked original action, execute enforced safety action (typically ESCALATE)
+  // If policy blocked the original action, run the enforced fallback instead
   const actionToExecute = policyEvaluation.finalAction || recommendedAction;
 
-  // Case 1: DO_NOTHING — Safe non-action
-  if (actionToExecute === 'DO_NOTHING') {
-    return {
-      status: 'REFRAINED',
-      actionExecuted: 'DO_NOTHING',
-      toolResult: { message: 'Action intentionally refrained according to AI strategy and merchant policy.' },
-      recoveredAmount: 0,
-      details: 'Autonomous non-intervention completed safely.'
-    };
-  }
+  const provider = getProvider();
 
-  // Case 2: RETRY_PAYMENT — Policy permitted retry
-  if (actionToExecute === 'RETRY_PAYMENT') {
-    const retryResult = await razorpayTools.retryPayment({
-      paymentId,
-      amount,
-      customerId,
-      paymentMethod: payment_method
-    });
+  const result = await provider.execute({
+    caseId,
+    payment,
+    customer,
+    action:           actionToExecute,
+    policyEvaluation,
+    rationale,
+  });
 
-    const recoveredAmount = retryResult.success ? amount : 0;
-
-    return {
-      status: retryResult.success ? 'SUCCESS' : 'FAILED',
-      actionExecuted: 'RETRY_PAYMENT',
-      toolResult: retryResult,
-      recoveredAmount,
-      details: retryResult.success
-        ? `Payment ₹${amount.toLocaleString('en-IN')} successfully recovered via automatic gateway retry.`
-        : `Automatic retry attempted but rejected by issuing bank switch.`
-    };
-  }
-
-  // Case 3: SEND_REMINDER / OFFER_ALTERNATIVE_METHOD — Send recovery communication
-  if (actionToExecute === 'SEND_REMINDER' || actionToExecute === 'OFFER_ALTERNATIVE_METHOD') {
-    const msgResult = await razorpayTools.sendRecoveryMessage({
-      customerId,
-      customerName,
-      email: customerEmail,
-      amount,
-      paymentId,
-      channel: 'email'
-    });
-
-    // Simulate 45% recovery conversion on delivered reminder
-    const isConverted = Math.random() < 0.45;
-    const recoveredAmount = isConverted ? amount : 0;
-
-    return {
-      status: 'SUCCESS',
-      actionExecuted: actionToExecute,
-      toolResult: msgResult,
-      recoveredAmount,
-      details: `Dispatched customized 1-click Razorpay payment link to ${customerEmail || 'customer'}.`
-    };
-  }
-
-  // Case 4: ESCALATE — Create VIP escalation ticket
-  if (actionToExecute === 'ESCALATE') {
-    const ticketResult = await razorpayTools.createSupportTicket({
-      paymentId,
-      customerId,
-      amount,
-      reason: policyEvaluation.allowed ? rationale : policyEvaluation.reason,
-      priority: amount > 15000 ? 'URGENT' : 'HIGH'
-    });
-
-    return {
-      status: 'ESCALATED',
-      actionExecuted: 'ESCALATE',
-      toolResult: ticketResult,
-      recoveredAmount: 0,
-      details: `Created priority ticket ${ticketResult.ticketId} assigned to Revenue Operations team.`
-    };
-  }
-
-  // Fallback
-  return {
-    status: 'UNKNOWN',
-    actionExecuted: actionToExecute,
-    toolResult: {},
-    recoveredAmount: 0,
-    details: 'No executable tool matched.'
-  };
+  return result;
 }

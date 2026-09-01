@@ -141,9 +141,44 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
+##  Razorpay Test Mode & Webhook Architecture
+
+RecoverAI features a production-grade provider abstraction layer supporting both live **Razorpay Test Mode** and zero-config **Simulation Mode**:
+
+```
+[Failed Payment] 
+      ↓
+[5-Agent Safety Pipeline]
+      ↓
+[Provider Selector]
+   ├── RAZORPAY TEST MODE (Credentials configured)
+   │     1. Creates genuine Razorpay Payment Link (`reference_id = caseId`)
+   │     2. Records status = 'awaiting_payment' (recovered_amount = 0)
+   │     3. Customer completes test payment via Razorpay checkout
+   │     4. Webhook arrives: POST /api/webhooks/razorpay (HMAC-SHA256 verified)
+   │     5. Webhook updates case to 'recovered' + broadcasts SSE update
+   │
+   └── SIMULATION MODE (No credentials / fallback)
+         1. Generates simulated payment link / retry
+         2. Uses deterministic simulation engine for demo workflows
+```
+
+### Webhook Configuration
+1. In the Razorpay Dashboard, navigate to **Settings → Webhooks**.
+2. Add a new webhook targeting: `https://your-domain/api/webhooks/razorpay` (or your ngrok URL during local testing).
+3. Select the event: **`payment_link.paid`**.
+4. Set the secret in `server/.env` as `RAZORPAY_WEBHOOK_SECRET=your_secret`.
+
+### Running Automated Integration Tests
+```bash
+node server/tests/razorpay-integration.test.js
+```
+
+---
+
 ##  Demo Scenarios
 
-The dashboard includes 4 benchmark demo scenarios showcasing bounded AI decisions:
+The dashboard includes benchmark demo scenarios showcasing bounded AI decisions:
 
 1. **Case 1 (₹999, Network switch error):**
    - Detective: 95% opportunity score

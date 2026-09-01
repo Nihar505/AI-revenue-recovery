@@ -58,6 +58,8 @@ export function initDb() {
       recommended_action TEXT,
       confidence REAL,
       status TEXT DEFAULT 'pending',
+      provider TEXT DEFAULT 'simulation',
+      provider_payment_link_id TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (payment_id) REFERENCES payments(id)
     );
@@ -87,8 +89,17 @@ export function initDb() {
       action TEXT,
       recovered_amount REAL DEFAULT 0,
       outcome TEXT,
+      outcome_source TEXT DEFAULT 'simulation',
+      provider_payment_link_id TEXT,
       timestamp TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (case_id) REFERENCES recovery_cases(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS webhook_events (
+      id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      processed_at TEXT DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS merchant_policies (
@@ -129,6 +140,13 @@ export function initDb() {
 
     CREATE INDEX IF NOT EXISTS idx_audits_user ON audit_sheets(user_id);
     CREATE INDEX IF NOT EXISTS idx_audits_type ON audit_sheets(audit_type);
+
+    CREATE TABLE IF NOT EXISTS webhook_events (
+      id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      processed_at TEXT DEFAULT (datetime('now'))
+    );
   `);
 
   // Migration: Ensure new OAuth columns exist for existing databases
@@ -158,9 +176,34 @@ export function initDb() {
   }
   db.exec("CREATE INDEX IF NOT EXISTS idx_payments_user ON payments(user_id)");
 
-  // Backfill unassigned existing seed dataset to default admin user ('usr_default_admin')
-  db.exec("UPDATE customers SET user_id = 'usr_default_admin' WHERE user_id IS NULL");
-  db.exec("UPDATE payments SET user_id = 'usr_default_admin' WHERE user_id IS NULL");
+  // Migration: Ensure Razorpay provider columns exist on recovery_cases
+  const caseColumns = db.prepare("PRAGMA table_info(recovery_cases)").all().map(c => c.name);
+  if (!caseColumns.includes('provider')) {
+    db.exec("ALTER TABLE recovery_cases ADD COLUMN provider TEXT DEFAULT 'simulation'");
+  }
+  if (!caseColumns.includes('provider_payment_link_id')) {
+    db.exec('ALTER TABLE recovery_cases ADD COLUMN provider_payment_link_id TEXT');
+  }
+
+  // Migration: Razorpay integration — recovery_outcomes provider columns
+  const outcomeColumns = db.prepare('PRAGMA table_info(recovery_outcomes)').all().map(c => c.name);
+  if (!outcomeColumns.includes('outcome_source')) {
+    db.exec("ALTER TABLE recovery_outcomes ADD COLUMN outcome_source TEXT DEFAULT 'simulation'");
+  }
+  if (!outcomeColumns.includes('provider_payment_link_id')) {
+    db.exec('ALTER TABLE recovery_outcomes ADD COLUMN provider_payment_link_id TEXT');
+  }
+
+  // Ensure webhook_events table exists (idempotency for Razorpay webhooks)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS webhook_events (
+      id TEXT PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      processed_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_webhook_events_id ON webhook_events(id)');
 
   // Seed default user if none exists
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getDb } from '../db/schema.js';
+import { getMode, isRazorpayEnabled } from '../integrations/razorpay/client.js';
 
 export const healthRouter = Router();
 
@@ -13,6 +14,10 @@ healthRouter.get('/', (req, res) => {
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
+      razorpay: {
+        mode: getMode(),
+        enabled: isRazorpayEnabled(),
+      },
       db: {
         customers: customers.count,
         payments: payments.count,

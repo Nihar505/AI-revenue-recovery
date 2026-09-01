@@ -17,11 +17,15 @@ let sseClients = [];
 
 export function broadcastAgentEvent(event) {
   const data = `data: ${JSON.stringify(event)}\n\n`;
-  sseClients.forEach(client => {
+  sseClients = sseClients.filter(client => {
     try {
+      if (client.res.writableEnded || client.res.destroyed || !client.res.writable) {
+        return false;
+      }
       client.res.write(data);
+      return true;
     } catch (e) {
-      // client disconnected
+      return false;
     }
   });
 }
@@ -50,12 +54,21 @@ runRecoveryRouter.get('/stream', (req, res) => {
   const newClient = { id: clientId, res };
   sseClients.push(newClient);
 
-  // Initial welcome event
-  res.write(`data: ${JSON.stringify({ type: 'CONNECTED', message: 'SSE Stream Connected to RecoverAI Multi-Agent Pipeline' })}\n\n`);
-
-  req.on('close', () => {
+  const cleanup = () => {
     sseClients = sseClients.filter(c => c.id !== clientId);
-  });
+  };
+
+  req.on('close', cleanup);
+  req.on('error', cleanup);
+  res.on('close', cleanup);
+  res.on('error', cleanup);
+
+  // Initial welcome event
+  try {
+    res.write(`data: ${JSON.stringify({ type: 'CONNECTED', message: 'SSE Stream Connected to RecoverAI Multi-Agent Pipeline' })}\n\n`);
+  } catch (e) {
+    cleanup();
+  }
 });
 
 /**
@@ -125,6 +138,7 @@ export async function processPaymentEvent(payment, customer, existingCaseId = nu
 
   // 5. Execution Agent
   const executionResult = await runExecutionAgent({
+    caseId,
     payment,
     customer,
     recommendedAction: strategistResult.recommendedAction,
@@ -138,7 +152,9 @@ export async function processPaymentEvent(payment, customer, existingCaseId = nu
     amount: payment.amount,
     status: executionResult.status,
     recoveredAmount: executionResult.recoveredAmount,
-    message: executionResult.details
+    message: executionResult.details,
+    paymentLinkUrl: executionResult.providerPaymentLinkUrl || null,
+    mode: executionResult.mode || 'simulation'
   });
 
   // 6. Auditor Agent
@@ -152,6 +168,11 @@ export async function processPaymentEvent(payment, customer, existingCaseId = nu
     executionResult
   });
 
+  const outcomeUpper = auditLog.finalOutcome.toUpperCase();
+  const auditorMsg = auditLog.finalOutcome === 'awaiting_payment'
+    ? `Case ${caseId} recorded. Status: AWAITING PAYMENT (Razorpay Payment Link active).`
+    : `Case ${caseId} sealed. Outcome: ${outcomeUpper}. ${auditLog.recoveredAmount > 0 ? `₹${auditLog.recoveredAmount.toLocaleString('en-IN')} recovered.` : 'No charge taken.'}`;
+
   broadcastAgentEvent({
     agent: 'Auditor',
     paymentId: payment.id,
@@ -159,7 +180,8 @@ export async function processPaymentEvent(payment, customer, existingCaseId = nu
     status: 'RECORDED',
     outcome: auditLog.finalOutcome,
     recoveredAmount: auditLog.recoveredAmount,
-    message: `Case ${caseId} sealed. Outcome: ${auditLog.finalOutcome.toUpperCase()}. ${auditLog.recoveredAmount > 0 ? `₹${auditLog.recoveredAmount.toLocaleString('en-IN')} recovered.` : 'No charge taken.'}`
+    message: auditorMsg,
+    mode: auditLog.mode || 'simulation'
   });
 
   return {
@@ -220,88 +242,91 @@ runRecoveryRouter.post('/batch', async (req, res) => {
     });
 
     (async () => {
-      let recoveredTotal = 0;
-      for (const p of payments) {
-        try {
-          const result = await processPaymentEvent(p, {
-            id: p.customer_id,
-            name: p.name,
-            email: p.email,
-            lifetime_value: p.lifetime_value,
-            successful_payments: p.successful_payments,
-            failed_payments: p.failed_payments,
-          }, p.case_id);
-          recoveredTotal += result.executionResult.recoveredAmount || 0;
-        } catch (err) {
-          db.prepare("UPDATE recovery_cases SET status = 'pending' WHERE id = ? AND status = 'processing'").run(p.case_id);
-          console.error(`Error processing payment ${p.id}:`, err);
+      try {
+        let recoveredTotal = 0;
+        for (const p of payments) {
+          try {
+            const result = await processPaymentEvent(p, {
+              id: p.customer_id,
+              name: p.name,
+              email: p.email,
+              lifetime_value: p.lifetime_value,
+              successful_payments: p.successful_payments,
+              failed_payments: p.failed_payments,
+            }, p.case_id);
+            recoveredTotal += result?.executionResult?.recoveredAmount || 0;
+          } catch (err) {
+            db.prepare("UPDATE recovery_cases SET status = 'pending' WHERE id = ? AND status = 'processing'").run(p.case_id);
+            console.error(`Error processing payment ${p.id}:`, err);
+          }
         }
-      }
 
-      broadcastAgentEvent({
-        agent: 'System',
-        status: 'BATCH_COMPLETE',
-        recoveredTotal,
-        message: `Recovery run completed. Recovered total: ₹${recoveredTotal.toLocaleString('en-IN')}`,
-      });
+        broadcastAgentEvent({
+          agent: 'System',
+          status: 'BATCH_COMPLETE',
+          recoveredTotal,
+          message: `Recovery run completed. Recovered total: ₹${recoveredTotal.toLocaleString('en-IN')}`,
+        });
 
-      // ─── Demo account: auto-replenish pending queue ───────────────────
-      // When the demo account's pending cases run low, silently recycle
-      // oldest resolved/recovered cases back to pending so the queue never
-      // runs dry. This is ONLY triggered for the dedicated demo account.
-      const DEMO_USER_ID = 'usr_demo_account';
-      const REPLENISH_THRESHOLD = 25; // replenish when fewer than this remain
-      const REPLENISH_BATCH = 60;     // recycle this many cases at once
+        // ─── Demo account: auto-replenish pending queue ───────────────────
+        // When the demo account's pending cases run low, silently recycle
+        // oldest resolved/recovered cases back to pending so the queue never
+        // runs dry. This is ONLY triggered for the dedicated demo account.
+        const DEMO_USER_ID = 'usr_demo_account';
+        const REPLENISH_THRESHOLD = 25; // replenish when fewer than this remain
+        const REPLENISH_BATCH = 60;     // recycle this many cases at once
 
-      if (userId === DEMO_USER_ID) {
-        try {
-          const { pendingCount } = db.prepare(`
-            SELECT COUNT(*) as pendingCount
-            FROM recovery_cases rc
-            JOIN payments p ON p.id = rc.payment_id
-            WHERE rc.status = 'pending' AND p.user_id = ?
-          `).get(DEMO_USER_ID);
-
-          if (pendingCount < REPLENISH_THRESHOLD) {
-            // Pick oldest resolved/failed/escalated cases to recycle
-            const toRecycle = db.prepare(`
-              SELECT rc.id as case_id
+        if (userId === DEMO_USER_ID) {
+          try {
+            const { pendingCount } = db.prepare(`
+              SELECT COUNT(*) as pendingCount
               FROM recovery_cases rc
               JOIN payments p ON p.id = rc.payment_id
-              WHERE p.user_id = ? AND rc.status IN ('resolved', 'failed', 'escalated', 'recovered')
-              ORDER BY rc.created_at ASC
-              LIMIT ?
-            `).all(DEMO_USER_ID, REPLENISH_BATCH);
+              WHERE rc.status = 'pending' AND p.user_id = ?
+            `).get(DEMO_USER_ID);
 
-            if (toRecycle.length > 0) {
-              const ids = toRecycle.map(r => r.case_id);
-              const placeholders = ids.map(() => '?').join(',');
+            if (pendingCount < REPLENISH_THRESHOLD) {
+              // Pick oldest resolved/failed/escalated cases to recycle
+              const toRecycle = db.prepare(`
+                SELECT rc.id as case_id
+                FROM recovery_cases rc
+                JOIN payments p ON p.id = rc.payment_id
+                WHERE p.user_id = ? AND rc.status IN ('resolved', 'failed', 'escalated', 'recovered')
+                ORDER BY rc.created_at ASC
+                LIMIT ?
+              `).all(DEMO_USER_ID, REPLENISH_BATCH);
 
-              // Remove outcomes and live agent actions for these cases
-              db.prepare(`DELETE FROM recovery_outcomes WHERE case_id IN (${placeholders})`).run(...ids);
-              db.prepare(`
-                DELETE FROM agent_actions
-                WHERE case_id IN (${placeholders})
-                AND id NOT LIKE 'act_demo_%'
-              `).run(...ids);
+              if (toRecycle.length > 0) {
+                const ids = toRecycle.map(r => r.case_id);
+                const placeholders = ids.map(() => '?').join(',');
 
-              // Reset cases to pending
-              db.prepare(`
-                UPDATE recovery_cases
-                SET status = 'pending'
-                WHERE id IN (${placeholders})
-              `).run(...ids);
+                // Remove outcomes and live agent actions for these cases
+                db.prepare(`DELETE FROM recovery_outcomes WHERE case_id IN (${placeholders})`).run(...ids);
+                db.prepare(`
+                  DELETE FROM agent_actions
+                  WHERE case_id IN (${placeholders})
+                  AND id NOT LIKE 'act_demo_%'
+                `).run(...ids);
 
-              console.log(`[Demo Replenish] Recycled ${ids.length} cases back to pending (had ${pendingCount} left).`);
+                // Reset cases to pending
+                db.prepare(`
+                  UPDATE recovery_cases
+                  SET status = 'pending'
+                  WHERE id IN (${placeholders})
+                `).run(...ids);
+
+                console.log(`[Demo Replenish] Recycled ${ids.length} cases back to pending (had ${pendingCount} left).`);
+              }
             }
+          } catch (replenishErr) {
+            // Non-critical — log but don't crash
+            console.error('[Demo Replenish] Error during replenish:', replenishErr.message);
           }
-        } catch (replenishErr) {
-          // Non-critical — log but don't crash
-          console.error('[Demo Replenish] Error during replenish:', replenishErr.message);
         }
+        // ─────────────────────────────────────────────────────────────────
+      } catch (backgroundErr) {
+        console.error('[Recovery Batch Runner] Background process error:', backgroundErr);
       }
-      // ─────────────────────────────────────────────────────────────────
-
     })();
 
   } catch (err) {

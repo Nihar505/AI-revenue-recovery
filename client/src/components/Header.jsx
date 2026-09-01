@@ -1,7 +1,9 @@
 import React from 'react';
 import { Menu, RefreshCw, Radio, ShieldCheck } from 'lucide-react';
 
-export function Header({ isConnected, onRefresh, lastUpdated, onOpenNavigation }) {
+export function Header({ isConnected, mode, onRefresh, lastUpdated, onOpenNavigation }) {
+  const isRazorpay = mode === 'razorpay_test';
+
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-neutral-800/80 bg-black/90 px-4 backdrop-blur-md sm:px-6 lg:px-8 print:hidden">
       <div className="flex min-w-0 items-center gap-3">
@@ -19,6 +21,19 @@ export function Header({ isConnected, onRefresh, lastUpdated, onOpenNavigation }
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
+        {mode && (
+          <div className={`hidden items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:flex ${
+            isRazorpay
+              ? 'border-sky-500/30 bg-sky-950/40 text-sky-400'
+              : 'border-amber-500/30 bg-amber-950/40 text-amber-400'
+          }`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${isRazorpay ? 'bg-sky-400 animate-pulse' : 'bg-amber-400'}`} />
+            <span className="font-semibold text-[10px] uppercase tracking-wider">
+              {isRazorpay ? 'Razorpay Test' : 'Simulation'}
+            </span>
+          </div>
+        )}
+
         <div className="hidden items-center gap-1.5 rounded-lg border border-neutral-800 bg-neutral-900/80 px-2.5 py-1.5 text-xs text-neutral-200 md:flex">
           <ShieldCheck className="h-3.5 w-3.5 text-neutral-300" />
           <span className="font-medium text-[11px]">Safety active</span>

@@ -49,11 +49,22 @@ export function CaseDetailModal({ caseId, onClose, onRunSingleCase }) {
   const outcome = data?.outcome;
 
   const statusPill = {
-    recovered: 'bg-white text-black',
-    refrained:  'bg-neutral-800 text-white',
-    escalated:  'bg-neutral-300 text-black',
-    pending:    'bg-neutral-900 text-neutral-400 border border-neutral-700',
+    recovered:        'bg-white text-black',
+    refrained:        'bg-neutral-800 text-white',
+    escalated:        'bg-neutral-300 text-black',
+    awaiting_payment: 'bg-sky-500/20 text-sky-300 border border-sky-500/40',
+    pending:          'bg-neutral-900 text-neutral-400 border border-neutral-700',
   };
+
+  // Find active payment link in executor tool results
+  const executorAction = actions.find(a => a.agent === 'Execution Agent');
+  let paymentLinkUrl = null;
+  if (executorAction?.input_data) {
+    try {
+      const parsed = typeof executorAction.input_data === 'string' ? JSON.parse(executorAction.input_data) : executorAction.input_data;
+      paymentLinkUrl = parsed.razorpay_payment_link_url || parsed.paymentLinkUrl || parsed.paymentLink;
+    } catch {}
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4 bg-black/80 backdrop-blur-sm">
@@ -66,7 +77,12 @@ export function CaseDetailModal({ caseId, onClose, onRunSingleCase }) {
                 <p className="text-sm font-bold text-white font-mono">{caseId}</p>
                 {c?.status && (
                   <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusPill[c.status] || statusPill.pending}`}>
-                    {c.status}
+                    {c.status === 'awaiting_payment' ? 'Awaiting Payment' : c.status}
+                  </span>
+                )}
+                {outcome?.outcome_source === 'razorpay_webhook' && (
+                  <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[9px] font-bold text-emerald-400 tracking-wider uppercase">
+                    Razorpay Verified
                   </span>
                 )}
               </div>
@@ -74,14 +90,16 @@ export function CaseDetailModal({ caseId, onClose, onRunSingleCase }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleRun}
-              disabled={running}
-              className="flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-black transition hover:bg-neutral-200 active:scale-95 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400"
-            >
-              {running ? <RotateCcw className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5 fill-current" />}
-              {running ? 'Running…' : 'Run pipeline'}
-            </button>
+            {c?.status === 'pending' && (
+              <button
+                onClick={handleRun}
+                disabled={running}
+                className="flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-black transition hover:bg-neutral-200 active:scale-95 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-400"
+              >
+                {running ? <RotateCcw className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5 fill-current" />}
+                {running ? 'Running…' : 'Run pipeline'}
+              </button>
+            )}
             <button
               onClick={onClose}
               aria-label="Close modal"
@@ -106,8 +124,33 @@ export function CaseDetailModal({ caseId, onClose, onRunSingleCase }) {
                 {error}
               </div>
             )}
+
+            {/* Active Razorpay Payment Link Banner */}
+            {paymentLinkUrl && (
+              <div className="mx-6 mt-4 rounded-xl border border-sky-500/30 bg-sky-950/20 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-sky-400">Razorpay Test Mode Link</span>
+                    <p className="text-xs text-neutral-300 mt-0.5">
+                      {c?.status === 'recovered'
+                        ? 'Payment link was completed and confirmed by Razorpay webhook.'
+                        : 'Customer payment link active. Open link to complete test payment and trigger webhook.'}
+                    </p>
+                  </div>
+                  <a
+                    href={paymentLinkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-bold text-black transition hover:bg-sky-400 active:scale-95"
+                  >
+                    Open Link →
+                  </a>
+                </div>
+              </div>
+            )}
+
             {/* Stats bar */}
-            <div className="grid grid-cols-3 divide-x divide-neutral-800 border-b border-neutral-800 bg-neutral-900/40">
+            <div className="grid grid-cols-3 divide-x divide-neutral-800 border-b border-neutral-800 bg-neutral-900/40 mt-4">
               <div className="px-6 py-4">
                 <p className="text-[11px] font-medium text-neutral-400">Amount</p>
                 <p className="mt-1 text-base sm:text-lg font-bold text-white">₹{Number(c?.amount || 0).toLocaleString('en-IN')}</p>

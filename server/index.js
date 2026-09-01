@@ -9,6 +9,7 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 
 import { authRouter } from './routes/auth.js';
 import { healthRouter } from './routes/health.js';
+import { webhooksRouter } from './routes/webhooks.js';
 import { casesRouter } from './routes/cases.js';
 import { agentsRouter } from './routes/agents.js';
 import { policiesRouter } from './routes/policies.js';
@@ -22,11 +23,16 @@ const app = express();
 const PORT = process.env.PORT || 3005;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString('utf8');
+  }
+}));
 
 // Public routes
 app.use('/api/health', healthRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/webhooks', webhooksRouter);
 
 // Protected routes — require valid JWT
 app.use('/api/cases', requireAuth, casesRouter);

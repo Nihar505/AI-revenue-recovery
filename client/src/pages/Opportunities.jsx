@@ -57,10 +57,11 @@ export function Opportunities({ onOpenCaseModal }) {
 
 
   const statusPill = {
-    recovered: 'bg-white text-black',
-    refrained:  'bg-neutral-800 text-white',
-    escalated:  'bg-neutral-300 text-black',
-    pending:    'bg-neutral-900 text-neutral-400 border border-neutral-700',
+    recovered:        'bg-white text-black',
+    refrained:        'bg-neutral-800 text-white',
+    escalated:        'bg-neutral-300 text-black',
+    awaiting_payment: 'bg-sky-500/20 text-sky-300 border border-sky-500/40',
+    pending:          'bg-neutral-900 text-neutral-400 border border-neutral-700',
   };
 
   const actionLabel = {
@@ -100,6 +101,7 @@ export function Opportunities({ onOpenCaseModal }) {
           >
             <option value="">All statuses</option>
             <option value="pending">Pending</option>
+            <option value="awaiting_payment">Awaiting Payment</option>
             <option value="recovered">Recovered</option>
             <option value="refrained">Refrained</option>
             <option value="escalated">Escalated</option>
@@ -172,9 +174,16 @@ export function Opportunities({ onOpenCaseModal }) {
                       ) : <span className="text-neutral-600">—</span>}
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusPill[c.status] || statusPill.pending}`}>
-                        {c.status}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusPill[c.status] || statusPill.pending}`}>
+                          {c.status === 'awaiting_payment' ? 'Awaiting Payment' : c.status}
+                        </span>
+                        {c.outcome_source === 'razorpay_webhook' && (
+                          <span className="rounded bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-400" title="Razorpay Webhook Verified">
+                            RZP
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3.5 text-right">
                       <button
