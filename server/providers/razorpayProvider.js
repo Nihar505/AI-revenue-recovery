@@ -96,19 +96,24 @@ export class RazorpayProvider {
         };
       } catch (err) {
         // Razorpay API error — record as attempted but failed, never mark as recovered
-        console.error('[RazorpayProvider] Payment link creation failed:', err.message);
+        const errMsg = err?.error?.description || err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+        const errCode = err?.error?.code || 'ERROR';
+        const statusCode = err?.statusCode || 500;
+        console.error(`[RazorpayProvider] Payment link creation failed [HTTP ${statusCode} | ${errCode}]:`, errMsg);
         return {
           mode: 'razorpay_test',
           outcome_source: 'razorpay_test',
           status: 'FAILED',
           actionExecuted: action,
           toolResult: {
-            error:   err.message,
-            note:    'Razorpay Payment Link creation failed. No charge attempted.',
+            error:      errMsg,
+            code:       errCode,
+            statusCode: statusCode,
+            note:       'Razorpay Payment Link creation failed. No charge attempted.',
           },
           recoveredAmount: 0,
-          details: `Payment Link creation failed: ${err.message}. No money action executed.`,
-          error: err.message,
+          details: `Payment Link creation failed: ${errMsg}. No money action executed.`,
+          error: errMsg,
         };
       }
     }
